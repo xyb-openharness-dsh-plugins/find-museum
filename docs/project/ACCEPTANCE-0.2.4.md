@@ -1,0 +1,19 @@
+# 0.2.4 本机安装与界面验收
+
+日期：2026-10-16。目标：DSH Desktop 0.11.1，macOS arm64，web Profile。
+
+## 已完成
+
+- 问题原因：Desktop web Profile 的 `@xyb-community/find-museum` 仍引用 `file:/Users/qinxiaoqiang/Downloads/museum-route-workbench/dist/find-museum-0.2.3-final.tgz`。0.2.4 源码和包此前已生成，但没有安装到该 Profile。
+- 安装前备份了 Profile 的 `package.json`、`pnpm-lock.yaml`、`cordis.yml`、`cordis.patch.yml`：`~/.config/find-museum/backups/desktop-v0.2.4-preinstall-1792134931/`。
+- 使用 Desktop 自带的 pnpm runner 按 `docs/project/RELEASE.md` 安装 `dist/find-museum.tgz`。generation 投影由runner排除并在安装后恢复。
+- Profile 依赖现指向 `file:/Users/qinxiaoqiang/Downloads/museum-route-workbench/dist/find-museum.tgz`；已安装包元信息为 `@xyb-community/find-museum@0.2.4`。
+- 本机包大小 6,182,922 bytes，SHA-256 `98c40ea9406cdc7c44cb68f4e8ef29a5659086782892d66082d4dd790fce003c`。构建包解包运行检查通过，未捆绑凭据。
+- 在实际 DSH Desktop 原生工作台界面看到 `v0.2.4`；点击💡后，浮层显示三步完整说明：搜索并建立清单、排序与安排Day N、保存或交给原生Agent。
+- 自动测试52项全通过；build、包检查、private scan通过。
+
+## 仍待验证
+
+- 当前Desktop仍显示“会话项目关联尚未保存：请先通过系统目录选择器选择本地资料目录”。本轮未更改会话项目或资料目录，也未声称原生会话与目录绑定已验收。
+- 未重启Desktop；重启恢复、完整原生Agent对话回流和资料目录关联待后续实测。
+- 市场投稿仍需按独立验收要求处理；本记录不代表已创建PR或已上架。

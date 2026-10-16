@@ -8,13 +8,13 @@
 
 数据：5535条2019名录+苏州5馆址为基线。迁移1–7；通用Place复用原覆盖表的校验JSON，ID不改。SQLite与Key/用户文件不进入Git。高德Key仅在~/.config/find-museum/local-secrets.json，新用户仍需自配。
 
-52测试在Node22.19和内置24.17通过；真实包与安装核对见ACCEPTANCE-0.2.1。0.2.4新增💡三步帮助浮层；包与Desktop加载仍需另行验收。已安装0.2.3，但不能声称运行中的Desktop完成热加载。完整Desktop原生会话和重启恢复待验。不要自行重启宿主。
+52测试在Node22.19通过；0.2.4真实包及Desktop加载核对见ACCEPTANCE-0.2.4。之前未加载的原因是web Profile依赖仍指向0.2.3-final.tgz，已更换为0.2.4并在Desktop实际界面确认版本和💡展开内容。资料目录关联提示仍在；会话项目关联、重启恢复和完整Agent回流待验。不要自行重启宿主。
 
 市场原始提示词：prompts/MARKET-PUBLISH.md。当前无最终Desktop截图、未提交收录PR。category固定other，PR建议新增旅行；只新增一条YAML。先完成真实宿主验收和截图，再按MARKET-PUBLISH检查。未来上架状态以真实PR及目录为准。
 
 ## 0.2.4 操作帮助
 
-三步流程说明从常驻文字改为💡入口，点击展开搜索建清单、排序安排Day N、保存/导出/交给原生Agent的说明；仅在发现和路书设计页面出现。页面使用原生details/summary以支持键盘操作，生成预览随正式HTML构建。自动测试、构建、包静态检查与私密文件检查通过；Desktop实际加载待验。
+三步流程说明从常驻文字改为💡入口，点击展开搜索建清单、排序安排Day N、保存/导出/交给原生Agent的说明；仅在发现和路书设计页面出现。页面使用原生details/summary以支持键盘操作，生成预览随正式HTML构建。Desktop web Profile已安装0.2.4，实际界面读到版本号、点击💡后读到完整说明；资料目录关联警告仍在。
 
 
 ## 本轮增补
