@@ -1,0 +1,17 @@
+{
+  "resourceId": "replace-with-real-id",
+  "kind": "dataset-or-skill-or-mcp-or-asset",
+  "version": "0.1.0",
+  "sourceUrl": "https://example.invalid/replace",
+  "licenseStatus": "to-confirm",
+  "sha256": "to-compute",
+  "bundled": false,
+  "downloadBytes": 0,
+  "unpackedBytes": 0,
+  "runtimeRequirements": [],
+  "hostToolRegistrationVerified": false,
+  "offlineBehavior": "to-define",
+  "updateAndRollback": "to-define",
+  "containsCredentials": false,
+  "marketEligibility": "verify-current-official-rules"
+}

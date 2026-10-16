@@ -1,0 +1,43 @@
+{
+  "assets": [
+    {
+      "path": "brand/xyb-logo.png",
+      "source": "community-provided brand reference; original local path omitted",
+      "sha256": "e7bf8431f3838aac9b790ebe4893c7941f86fd60aaff6caa79dc67d9baa69a58",
+      "bytes": 124177,
+      "purpose": "community brand reference; not automatically displayed",
+      "licenseStatus": "owner permission must be confirmed before public redistribution"
+    },
+    {
+      "path": "tokens.css",
+      "source": "authored in this starter",
+      "purpose": "scoped semantic theme"
+    },
+    {
+      "path": "tokens.json",
+      "source": "authored in this starter",
+      "purpose": "design token reference"
+    },
+    {
+      "path": "icons/clover.svg",
+      "source": "simple vector shapes authored for this starter",
+      "purpose": "optional low-intensity decoration",
+      "sha256": "00af37e51e1e70c97f132a8ea695ad10befe58db27c51294096a19215fc07834",
+      "bytes": 510
+    },
+    {
+      "path": "icons/flower-5.svg",
+      "source": "simple vector shapes authored for this starter",
+      "purpose": "optional low-intensity decoration",
+      "sha256": "63d63eae832f38c5f720ceff07d45eae33311e0a61e40427ac91a0ba086b1922",
+      "bytes": 829
+    },
+    {
+      "path": "icons/flower-7.svg",
+      "source": "simple vector shapes authored for this starter",
+      "purpose": "optional low-intensity decoration",
+      "sha256": "4b555b08e674a3eaa889114dc87995a4f5d17d783ec5247ee6ed25a14dd7ca9e",
+      "bytes": 1015
+    }
+  ]
+}

@@ -1,0 +1,117 @@
+[
+  {
+    "poiId": "B020001285",
+    "source": "amap-mcp/maps_search_detail",
+    "checkedAt": "2026-10-16",
+    "data": {
+      "id": "B020001285",
+      "name": "苏州博物馆(本馆)",
+      "location": "120.627856,31.322948",
+      "address": "东北街204号",
+      "business_area": "拙政园",
+      "city": "苏州市",
+      "type": "科教文化服务;博物馆;博物馆",
+      "alias": [],
+      "photos": {
+        "title": [],
+        "url": "http://store.is.autonavi.com/showpic/aced2ad6e6cebff9f83132f53195b0a5"
+      },
+      "cost": [],
+      "opentime2": "09/25-09/27 10:00–20:00开放 最晚进入19:00；09/30-10/06 10:00–20:00开放 最晚进入19:00；01/01-09/24 周二–周日 09:00–17:00开放 最晚进入16:00；09/28-09/29 周二–周日 09:00–17:00开放 最晚进入16:00；10/07-12/31 周二–周日 09:00–17:00开放 最晚进入16:00；01/01-09/24 周一 全天不开放；09/28-09/29 周一 全天不开放；10/07-12/31 周一 全天不开放；春节,劳动节,端午节 09:00–17:00开放；夜间开放时间另行公布。如本馆遇有重大活动或重要设备设施维修保养时，可根据需要临时闭馆，届时将告示公众。",
+      "rating": "4.8",
+      "open_time": []
+    }
+  },
+  {
+    "poiId": "B0FFJWJ0NG",
+    "source": "amap-mcp/maps_search_detail",
+    "checkedAt": "2026-10-16",
+    "data": {
+      "id": "B0FFJWJ0NG",
+      "name": "苏州博物馆西馆",
+      "location": "120.548055,31.289366",
+      "address": "高新区长江路399号(狮子山地铁站3A口步行310米)",
+      "business_area": "塔园路",
+      "city": "苏州市",
+      "type": "科教文化服务;博物馆;博物馆",
+      "alias": [],
+      "photos": {
+        "title": [],
+        "url": "http://aos-cdn-image.amap.com/sns/ugccomment/569de61f-d3a5-4f35-941e-e815c4936f98.jpg"
+      },
+      "cost": [],
+      "opentime2": "01-01至09-29 周一 全天关闭；01-01至09-29 周二至周日 09:00-17:00 最晚进入16:00；09-30至10-06 周一至周日 09:00-20:00 最晚进入19:00；10-07至12-31 周一 全天关闭；10-07至12-31 周二至周日 09:00-17:00 最晚进入16:00",
+      "rating": "4.7",
+      "open_time": "09:00-17:00 09:00-20:00 09:00-17:00"
+    }
+  },
+  {
+    "poiId": "B0FFMDQXZK",
+    "source": "amap-mcp/maps_search_detail",
+    "checkedAt": "2026-10-16",
+    "data": {
+      "id": "B0FFMDQXZK",
+      "name": "苏州吴文化博物馆",
+      "location": "120.648596,31.253742",
+      "address": "澹台街9号",
+      "business_area": [],
+      "city": "苏州市",
+      "type": "科教文化服务;博物馆;博物馆",
+      "alias": "苏州市吴中区博物馆|吴中博物馆",
+      "photos": {
+        "title": [],
+        "url": "http://aos-cdn-image.amap.com/sns/ugccomment/6bd9d416-d0b9-4cfb-9c54-c1a3bbd81bdd.jpg"
+      },
+      "cost": [],
+      "opentime2": "全年 周二–周日 09:00–17:00开放 最晚进入16:30；全年 周一 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 09:00–17:00开放 最晚进入16:30",
+      "rating": "4.7",
+      "open_time": []
+    }
+  },
+  {
+    "poiId": "B020001MZW",
+    "source": "amap-mcp/maps_search_detail",
+    "checkedAt": "2026-10-16",
+    "data": {
+      "id": "B020001MZW",
+      "name": "常熟博物馆",
+      "location": "120.740560,31.646880",
+      "address": "北门大街1号(枫林路2号为北门)",
+      "business_area": "百盛广场",
+      "city": "苏州市",
+      "type": "科教文化服务;博物馆;博物馆",
+      "alias": [],
+      "photos": {
+        "title": [],
+        "url": "http://store.is.autonavi.com/showpic/631ea3ab0449d2440d18a372de6dd387"
+      },
+      "cost": [],
+      "opentime2": "周一 全天关闭；周二至周日 09:00-16:30 最晚进入16:00；每周一闭馆（法定节假日除外，另行通知）",
+      "rating": "4.6",
+      "open_time": "09:00-16:30"
+    }
+  },
+  {
+    "poiId": "B02000IVF5",
+    "source": "amap-mcp/maps_search_detail",
+    "checkedAt": "2026-10-16",
+    "data": {
+      "id": "B02000IVF5",
+      "name": "中国古砖瓦博物馆",
+      "location": "120.900031,31.173416",
+      "address": "锦溪镇下塘街24号",
+      "business_area": "锦溪",
+      "city": "苏州市",
+      "type": "科教文化服务;博物馆;博物馆",
+      "alias": [],
+      "photos": {
+        "title": [],
+        "url": "https://aos-comment.amap.com/B02000IVF5/comment/content_media_external_images_media_98093_ss__1751158018889_38561054.jpg"
+      },
+      "cost": [],
+      "opentime2": "08:00-17:00(冬16:30)",
+      "rating": "3.9",
+      "open_time": []
+    }
+  }
+]

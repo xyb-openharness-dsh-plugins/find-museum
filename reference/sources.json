@@ -1,0 +1,224 @@
+{
+  "capturedAt": "2026-10-15T14:14:34.403495+00:00",
+  "method": "按文件/主题读取、提交stat与受影响diff；未全量读取聊天日志/数据库/私有凭据",
+  "sources": [
+    {
+      "id": "O01",
+      "kind": "official",
+      "url": "https://dshdesktop.com/workbench/docs/development.md",
+      "bytes": 26687,
+      "sha256": "751fcd5a7f481cb1ebc1f553f9e3775e699c4e8c07fd16cad4e76b90f1cf2fc6",
+      "gitTracked": false,
+      "worktreeStatus": null,
+      "snapshot": "reference/official/development-2026-10-09.md"
+    },
+    {
+      "id": "O02",
+      "kind": "official-local",
+      "url": null,
+      "bytes": 22727,
+      "sha256": "d648e9d22275a5f33f70ed392349b54ffcead6692e1ece4a949850ff6bee026d",
+      "gitTracked": true,
+      "worktreeStatus": "",
+      "snapshot": null
+    },
+    {
+      "id": "D01",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 9089,
+      "sha256": "dab979e83ef98527dbb9078a626943adc2de2e9cf91c9e576b32b61ccf31d5b2",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D01"
+    },
+    {
+      "id": "D02",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 7616,
+      "sha256": "6139e7067a7c9abe366313fd8e5bfd89c938ac1cd2464dab0b55c9d8592d4fbb",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D02"
+    },
+    {
+      "id": "D03",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 7100,
+      "sha256": "8926ea3309957ddba2a9a3ba81ddc3cc05204fd3e8bddad130af158ddc6ebb54",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D03"
+    },
+    {
+      "id": "D04",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 52654,
+      "sha256": "f2807945eaaf50c235ed55499450792ab7e296fa44979e6f9598be5a038c855a",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D04"
+    },
+    {
+      "id": "D05",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 11506,
+      "sha256": "ecedda2a9f980a903dac41b969b9169783fb03b3c561842e62da9ba8435806ba",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D05"
+    },
+    {
+      "id": "D06",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 6433,
+      "sha256": "322a014d17ab11cd7da7f8c4951c916d5dd9ff445ec121e495af6d0037c64125",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D06"
+    },
+    {
+      "id": "D07",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 3982,
+      "sha256": "08ad492131effabc3bf980cd799090563f2d9bc7b55da8e4bf71f969c8ed3c19",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D07"
+    },
+    {
+      "id": "D08",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 2092,
+      "sha256": "5768f06de43369d3afa340426de4973810b0a77bfe46412d4c901beb022a2a0c",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D08"
+    },
+    {
+      "id": "D09",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 17108,
+      "sha256": "0cdb5cea28ba0352d1c70d66c89d0647fd8e44c38d1d49c30965880a2396afc1",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D09"
+    },
+    {
+      "id": "D10",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 10348,
+      "sha256": "673e228ba941ffe3a42292ab9eb1da6f977e9827e19ea1c396fec9bed1156f9a",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D10"
+    },
+    {
+      "id": "D11",
+      "kind": "community-design",
+      "url": null,
+      "bytes": 17863,
+      "sha256": "29b1f25589952fed84a8c24337d665d1f4ddb4754f424bf15963cafdd66fed61",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D11"
+    },
+    {
+      "id": "D12",
+      "kind": "community-guide",
+      "url": null,
+      "bytes": 17148,
+      "sha256": "71c3592c719198afb824864511cc3f97af045f778aba94954ec4ee51714684cf",
+      "gitTracked": true,
+      "worktreeStatus": "",
+      "snapshot": null,
+      "label": "项目设计与实现资料 D12"
+    },
+    {
+      "id": "P01",
+      "kind": "integration-practice",
+      "url": null,
+      "bytes": 12280,
+      "sha256": "58a0a719c6ad97af61301259c2893786d624a081fe88687d1ada5061f9bfc165",
+      "gitTracked": true,
+      "worktreeStatus": "modified",
+      "snapshot": null,
+      "label": "宿主集成与提示词资料 P01"
+    },
+    {
+      "id": "P02",
+      "kind": "integration-practice",
+      "url": null,
+      "bytes": 24552,
+      "sha256": "8e5cd318382615f6721c2e8c39537a6a8e20c27578075386d80528b708e064af",
+      "gitTracked": true,
+      "worktreeStatus": "modified",
+      "snapshot": null,
+      "label": "宿主集成与提示词资料 P02"
+    },
+    {
+      "id": "P03",
+      "kind": "integration-practice",
+      "url": null,
+      "bytes": 8452,
+      "sha256": "54954ae5ea7416be7e13f9b402ea35d987ad7fe4029977dce29d1be69c47895d",
+      "gitTracked": true,
+      "worktreeStatus": "",
+      "snapshot": null,
+      "label": "宿主集成与提示词资料 P03"
+    },
+    {
+      "id": "P04",
+      "kind": "integration-practice",
+      "url": null,
+      "bytes": 5003,
+      "sha256": "40de252900b677a143f6d9fc792e1df5553575917babd3eca2dc88fa9160a0d2",
+      "gitTracked": true,
+      "worktreeStatus": "",
+      "snapshot": null,
+      "label": "宿主集成与提示词资料 P04"
+    },
+    {
+      "id": "P05",
+      "kind": "integration-practice",
+      "url": null,
+      "bytes": 12708,
+      "sha256": "6abc2d81ae4cd3032cfb4367383d3587f6768423b3a3bf14a1750e1053ddd25b",
+      "gitTracked": false,
+      "worktreeStatus": "untracked",
+      "snapshot": null,
+      "label": "宿主集成与提示词资料 P05"
+    },
+    {
+      "id": "O03",
+      "kind": "official",
+      "url": "https://dshdesktop.com/workbench/docs/market-acceptance.md",
+      "bytes": 13492,
+      "sha256": "deb32ef297d1e7cfcfac696b64346fde9703ca19c910faea3de2a1b1c5149e96",
+      "gitTracked": false,
+      "worktreeStatus": null,
+      "snapshot": "reference/official/market-acceptance-2026-09-29.md"
+    }
+  ],
+  "disclosure": "保留资料指纹和采样状态用于区分证据；不公开原项目身份、本机路径或仓库提交地址。未随附的原资料不能仅凭指纹重新获取。"
+}

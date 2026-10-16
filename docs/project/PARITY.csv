@@ -1,0 +1,11 @@
+feature,prototype,implementation,evidence,boundary
+five-tabs,五个主Tab,五个正式Tab,public/index.html,待Desktop容器验收
+map,Leaflet地图列表站序,高德底图本机代理,浏览器实看及地图测试,静态图停止拖动后更新
+search-select,原型单馆加入,升级为单选多选全选,真实高德17结果交互,POI可能含商业空间需核实
+workflow,原型直接路线,用户确认的清单→编排→交付三步,API回归,不在清单阶段强制时间
+reorder,上下移动,拖拽加上下移动,浏览器实际拖拽成功,Day N为相对日程
+visit-duration,旧原型短时默认,4小时基本和6/8小时深度,真实弹窗与迁移测试,不包括交通用餐
+persistence,原型localStorage演示,用户确认目录SQLite事实源,恢复和事务测试,localStorage仅目录与选择提示
+agent,原型右栏占位,只使用原生Agent草稿,Desktop契约测试,实际宿主操作另验
+exports,原型浏览器下载,服务端MD/CSV/JSON/HTML真实文件,字节和哈希测试,无PDF伪装
+results,原型占位说明,候选审核与路书归档,API及结果页面,不自动读取全部原生聊天

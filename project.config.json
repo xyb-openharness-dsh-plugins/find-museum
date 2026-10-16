@@ -1,0 +1,18 @@
+{
+  "packageName": "@xyb-community/find-museum",
+  "title": "寻馆 · 博物馆路线规划",
+  "description": "发现目的地城市和周边县域博物馆，筛选、规划并回顾参观路线",
+  "repository": "https://github.com/xyb-openharness-dsh-plugins/find-museum",
+  "slug": "find-museum",
+  "layoutMode": "split",
+  "businessWidth": 0.65,
+  "targetUsers": "博物馆爱好者、自驾及公共交通文化旅行者",
+  "scenario": "围绕目的地城市发现大馆与100km内的特色县域馆，核实参观条件后制定路线",
+  "coreFlow": [
+    "选择目的地城市、中心点、日期与交通方式",
+    "按等级、主题、县域和半径筛选并查看地图与来源",
+    "加入候选馆，调整顺序与日程，核实开放状态",
+    "导出路线或追加到 DSH 原生草稿，继续规划并回存路书"
+  ],
+  "completion": "可调整、可回顾、带来源和待核实项的博物馆参观路线"
+}

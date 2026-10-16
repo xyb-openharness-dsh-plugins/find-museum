@@ -1,0 +1,17 @@
+{
+  "project":"find-museum",
+  "version":"0.1.0",
+  "date":"2026-10-16",
+  "tests":{"total":29,"passed":29,"failed":0},
+  "catalog":{"records":5535,"baseYear":2019,"initialLocatedVenues":5},
+  "build":"passed",
+  "packageContract":"passed",
+  "extractedRuntime":"passed",
+  "desktopInstall":"passed",
+  "installedBytesMatch":true,
+  "desktopBundledDumpConfig":"passed",
+  "desktopRestartedAndLoaded":"unverified",
+  "nativeSessionActualUI":"unverified",
+  "credentialsBundled":false,
+  "officialStandardRefreshed":"2026-10-16; unchanged"
+}

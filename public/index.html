@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>寻馆 · 博物馆路线规划</title>
+    <link rel="stylesheet" href="vendor/leaflet.css" />
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <svg class="svg-defs" aria-hidden="true">
+      <defs>
+        <symbol id="i-museum" viewBox="0 0 24 24">
+          <path d="M3 9 12 4l9 5M4 10h16M6 11v8m6-8v8m6-8v8M3 20h18" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="10" cy="10" r="6" />
+          <path d="m15 15 5 5" />
+        </symbol>
+        <symbol id="i-map" viewBox="0 0 24 24">
+          <path d="m3 5 6-2 6 3 6-2v15l-6 2-6-3-6 2ZM9 3v15m6-12v15" />
+        </symbol>
+        <symbol id="i-route" viewBox="0 0 24 24">
+          <circle cx="6" cy="5" r="2" />
+          <circle cx="18" cy="19" r="2" />
+          <path d="M6 7v4a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4h-2" />
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 24 24">
+          <path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15" />
+        </symbol>
+        <symbol id="i-heart" viewBox="0 0 24 24">
+          <path d="M12 20 4 12C-2 5 8 0 12 7c4-7 14-2 8 5Z" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M4 12h15m-6-6 6 6-6 6" />
+        </symbol>
+      </defs>
+    </svg>
+    <div class="desktop-preview">
+      <main class="business">
+        <header class="brandbar">
+          <div class="wordmark">
+            <span class="seal"
+              ><svg><use href="#i-museum" /></svg></span
+            ><span>寻馆<small>MUSEUM ATLAS</small></span>
+          </div>
+          <span class="prototype-badge"><span id="version">连接中</span></span
+          ><button class="quiet" id="large-font">大字</button>
+        </header>
+        <nav class="tabs" aria-label="工作台页面">
+          <button data-tab="discover" class="active">
+            <svg><use href="#i-map" /></svg>发现博物馆</button
+          ><button data-tab="route">
+            <svg><use href="#i-route" /></svg>我的路线
+            <span id="route-count">0</span></button
+          ><button data-tab="favorites">
+            <svg><use href="#i-heart" /></svg>我的馆单</button
+          ><button data-tab="results">
+            <svg><use href="#i-book" /></svg>路书与结果</button
+          ><button data-tab="data">数据与配置</button>
+        </nav>
+        <ol class="workflow-steps">
+          <li>1 · 搜索并建立博物馆清单</li>
+          <li>2 · 排序与安排 Day N</li>
+          <li>3 · 保存或交给原生 Agent</li>
+        </ol>
+        <div class="projectbar">
+          <label
+            >旅行项目
+            <select id="project-select">
+              <option value="">尚未选择</option>
+            </select></label
+          ><button class="outline" id="new-trip">＋ 新旅行</button
+          ><button class="quiet" id="choose-root">选择资料目录</button
+          ><span id="save-state" role="status"></span>
+        </div>
+        <section class="intro">
+          <div>
+            <p class="eyebrow">一座大馆之外，还有别的故事</p>
+            <h1 id="page-title">苏州，馆里见<span>。</span></h1>
+            <p class="intro-note">把城市的轮廓，看得更细一点。</p>
+          </div>
+          <button class="outline" id="about-data">
+            名录说明 <span>↗</span>
+          </button>
+        </section>
+        <section class="searchbar">
+          <label class="destination"
+            >目的地<input
+              id="city"
+              value="苏州"
+              aria-label="目的地城市"
+              placeholder="城市，如苏州" /></label
+          ><label class="search"
+            ><svg><use href="#i-search" /></svg
+            ><input
+              id="query"
+              aria-label="搜索馆名、特色或城市"
+              placeholder="馆名、特色或城市，例如：青铜、常熟" /></label
+          ><button class="primary" id="search-button">定位城市</button>
+        </section>
+        <section id="discover-page" class="page">
+          <div class="filters">
+            <button class="chip" id="online-search">高德搜馆 ↗</button
+            ><button class="chip selected" data-filter="all">全部馆</button
+            ><button class="chip" data-filter="county">县域与小馆</button
+            ><button class="chip" data-filter="theme">特色专题</button
+            ><label
+              >等级<select id="grade">
+                <option value="">不限</option>
+                <option>一级</option>
+                <option>二级</option>
+                <option>三级</option>
+                <option>未定级</option>
+              </select></label
+            ><label
+              >半径<select id="radius">
+                <option value="100">100 km</option>
+                <option value="50">50 km</option>
+                <option value="20">20 km</option>
+                <option value="10">10 km</option>
+              </select></label
+            >
+          </div>
+          <div class="discovery-grid">
+            <section class="museum-list">
+              <div class="section-heading">
+                <h2 id="list-heading">从这里开始</h2>
+                <span id="result-count"></span>
+              </div>
+              <p class="micro" id="scope-note">
+                以苏州博物馆本馆为中心 · 直线距离
+              </p>
+              <div id="museum-list"></div>
+              <div class="catalog-section">
+                <h3>未定位的历史名录</h3>
+                <p class="micro">
+                  名称匹配仅为候选；地址未核实的馆不会冒充地图点位。
+                </p>
+                <div id="catalog-list"></div>
+                <div class="pagination">
+                  <button class="quiet" id="prev-page">上一页</button
+                  ><span id="catalog-page"></span
+                  ><button class="quiet" id="next-page">下一页</button>
+                </div>
+              </div>
+            </section>
+            <section class="map-wrap">
+              <div class="map-heading">
+                <span><i class="legend-dot"></i> 目的地与周边</span
+                ><button class="quiet" id="fit-map">查看全部点位</button>
+              </div>
+              <div id="map" aria-label="博物馆位置地图"></div>
+              <div class="map-caption">
+                <span>点位与底图：高德地图</span><span id="center-label"></span
+                ><span>GCJ-02 坐标 · 连线仅为站序示意</span>
+              </div>
+              <div class="map-bottom">
+                <svg><use href="#i-route" /></svg>
+                <div>
+                  <b>把想去的馆，连成自己的路线</b>
+                  <p>先收藏兴趣，再决定顺序；不必一次走完。</p>
+                </div>
+                <button class="outline" data-go="route">编辑路线 →</button>
+              </div>
+            </section>
+          </div>
+          <div class="data-footnote">
+            <span>全国基础名录 <b>5,535</b> 条 · 2019 历史快照</span
+            ><span><span id="coverage">正在读取馆址</span></span>
+          </div>
+        </section>
+        <section id="route-page" class="page" hidden>
+          <section class="collection-panel">
+            <div class="section-heading">
+              <h2>① 博物馆清单</h2>
+              <span id="selection-total"></span>
+            </div>
+            <p class="micro">
+              先收集，不分配时长和天数。想去的馆选齐后，再进入第二步排序。
+            </p>
+            <div id="selection-list"></div>
+          </section>
+          <div class="panel-head">
+            <div>
+              <h2>② 排顺序，安排 Day N</h2>
+              <p>顺序由你决定；连线只是点位示意，不是驾车道路。</p>
+            </div>
+          </div>
+          <div class="trip-conditions">
+            <label
+              >出行日期（可选，仅用于核实开放）<input
+                id="trip-date"
+                type="date" /></label
+            ><label
+              >交通方式<select id="trip-mode">
+                <option>尚未决定</option>
+                <option>自驾</option>
+                <option>公共交通</option>
+                <option>步行</option>
+              </select></label
+            ><span>参观时长为可编辑规划值，非馆方承诺</span>
+          </div>
+          <div class="route-toolbar">
+            <button class="outline" id="edit-route-plan">
+              开始排序 / 调整 Day N</button
+            ><button class="outline" id="open-session">打开原生会话</button
+            ><button class="outline" id="calculate-driving">核算驾车路段</button
+            ><button class="quiet" id="import-candidates">导入核实结果</button
+            ><button class="quiet" id="save-roadbook">保存 Agent 路书</button>
+          </div>
+          <div id="route-list"></div>
+          <div id="driving-results"></div>
+          <h2 class="delivery-heading">③ 保存或交给 Agent 完善路书</h2>
+          <div class="route-toolbar">
+            <button class="primary" id="agent-route">
+              交给 Agent 补充路书 <svg><use href="#i-arrow" /></svg>
+            </button>
+          </div>
+          <div class="exportbar">
+            <span id="distance-total"></span>
+            <div>
+              <button class="outline" data-export="md">导出 Markdown</button
+              ><button class="outline" data-export="csv">导出 CSV</button
+              ><button class="quiet" data-export="json">保存规划（JSON）</button
+              ><button class="quiet" data-export="html">HTML</button>
+            </div>
+          </div>
+          <div class="soft-note">
+            出发前再确认一次：闭馆日、临时维修、最后入馆时间、预约余量和展品是否在展。可主动核算高德驾车路段；其他交通请交给
+            Agent 查询。
+          </div>
+        </section>
+        <section id="favorites-page" class="page" hidden>
+          <div class="panel-head">
+            <div>
+              <h2>想去的馆，慢慢积累</h2>
+              <p>收藏、参观记录和笔记保存在你选择的本地资料目录。</p>
+            </div>
+          </div>
+          <div id="favorites-list"></div>
+        </section>
+        <section id="results-page" class="page" hidden>
+          <div class="panel-head">
+            <div>
+              <h2>这次规划留下的线索</h2>
+              <p>导出文件、Agent路书与核实候选，留在同一个地方回顾。</p>
+            </div>
+          </div>
+          <div class="route-toolbar">
+            <button class="outline" id="import-candidates-results">
+              导入核实结果</button
+            ><button class="outline" id="save-roadbook-results">
+              保存路书
+            </button>
+          </div>
+          <div id="candidate-list"></div>
+          <div id="results-list"></div>
+        </section>
+        <section id="data-page" class="page" hidden>
+          <div class="panel-head">
+            <div>
+              <h2>知道数据从哪里来</h2>
+              <p>有来源，有年份；不知道的地方，明确留白。</p>
+            </div>
+          </div>
+          <div class="data-stats">
+            <div>
+              <span>真实名录</span><strong>5,535</strong
+              ><small>2019 年官方基础快照</small>
+            </div>
+            <div>
+              <span>已定位试点</span><strong id="located-count">—</strong
+              ><small><span id="venue-total">正在读取</span></small>
+            </div>
+            <div>
+              <span>当天开放核实</span><strong>待核实</strong
+              ><small>常规时间不等于当日开放</small>
+            </div>
+          </div>
+          <div class="config-section">
+            <h3>地图与搜索</h3>
+            <p>
+              地图采用高德 Web 服务，经本机服务端代理加载；Key
+              不写入页面或安装包。当前 MCP 查询与地图服务分别验证。
+            </p>
+            <div class="key-guide">
+              <h4>第一次使用高德？</h4>
+              <ol>
+                <li>登录高德开放平台，在“应用管理 → 我的应用”创建一个应用。</li>
+                <li>
+                  添加 Key，服务平台选择“Web
+                  服务”。本工作台使用本机服务代理，请不要选择“Web 端 JS API”。
+                </li>
+                <li>
+                  按高德控制台要求完成认证、开通所需服务，并查看静态地图、地点搜索、地理编码及路径规划的配额。
+                </li>
+                <li>
+                  复制 Key 到下方保存，再点击“检查连接”。Key
+                  仅留在本机，过期或额度不足时可在这里更换。
+                </li>
+              </ol>
+              <p>
+                <a
+                  href="https://console.amap.com/dev/key/app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >打开高德控制台 ↗</a
+                >
+                ·
+                <a
+                  href="https://lbs.amap.com/api/webservice/guide/create-project/get-key"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >官方 Key 申请指南 ↗</a
+                >
+              </p>
+            </div>
+            <form id="map-key-form">
+              <label
+                >高德 Web 服务 Key<input
+                  type="password"
+                  id="amap-key"
+                  autocomplete="off"
+                  placeholder="仅保存在本机，不回显，不随包发布" /></label
+              ><button class="outline">保存本机 Key</button
+              ><button type="button" class="quiet" id="check-amap">
+                检查连接</button
+              ><span id="map-config-status" role="status"></span>
+            </form>
+            <p>
+              高德 Web 服务由本机代理提供；Agent
+              搜索与高德技能以当前原生会话实际工具为准。agent-reach 为可选渠道。
+            </p>
+          </div>
+          <div class="config-section">
+            <h3>字段完整度</h3>
+            <p>
+              历史目录提供馆名、等级和性质；全国地址、坐标、公众号与动态开放状态尚未全量补齐。城市名称推断与已核实城市分开保存。
+            </p>
+            <a class="outline" href="/api/find-museum/catalog.csv" download
+              >下载全国历史名录 CSV</a
+            >
+            <p id="root-description"></p>
+            <button class="outline" id="choose-root-settings">
+              选择/切换本地资料目录
+            </button>
+            <p>
+              运行目录与会话工作区分开；切换目录不会删除原目录。名录的年份、未知字段和已核实馆址分开管理。
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+    <dialog id="detail"><div id="detail-content"></div></dialog>
+    <dialog id="action-dialog"><div id="action-content"></div></dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <script src="vendor/leaflet.js"></script>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

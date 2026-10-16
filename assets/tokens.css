@@ -1,0 +1,24 @@
+/* Scope to business content; never style host navigation globally. */
+.wb-root {
+  --wb-paper: #f7faf8; --wb-surface: #ffffff; --wb-ink: #34413c;
+  --wb-muted: #596c62; --wb-line: #dce7df; --wb-mint: #e2f2ea;
+  --wb-mint-ink: #22664e; --wb-action: #b95023; --wb-action-ink: #ffffff;
+  --wb-pink: #f8e8eb; --wb-blue: #eaf1f6; --wb-yellow: #faf2d8;
+  --wb-radius: 18px; --wb-gap: 16px; --wb-group-gap: 24px;
+  color: var(--wb-ink); background: var(--wb-paper); font: 16px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  font-variant-numeric: tabular-nums; min-width: 0; min-height: 0; container-type: inline-size;
+}
+.wb-root[data-font=large] { font-size: 19px; }
+.wb-root * { box-sizing: border-box; }
+.wb-root button,.wb-root input,.wb-root select { font: inherit; }
+.wb-root button { min-height: 44px; cursor: pointer; }
+.wb-root :focus-visible { outline: 3px solid var(--wb-mint-ink); outline-offset: 3px; }
+.wb-root .wb-primary { background: var(--wb-action); color: var(--wb-action-ink); border: 0; border-radius: 999px; padding: 9px 20px; }
+.wb-root .wb-flower { display: inline-block; width: 24px; height: 24px; flex: 0 0 auto; margin-inline-end: 10px; animation: wb-flower-turn 12s linear infinite; }
+@keyframes wb-flower-turn { to { transform: rotate(360deg); } }
+@media (prefers-color-scheme: dark) {
+  .wb-root { --wb-paper:#17231f; --wb-surface:#20322a; --wb-ink:#edf5ef; --wb-muted:#c0d2c6; --wb-line:#496354; --wb-mint:#294f3f; --wb-mint-ink:#a0ddbd; --wb-action:#f3a578; --wb-action-ink:#39200e; --wb-pink:#45333a; --wb-blue:#283d4c; --wb-yellow:#473e25; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wb-root .wb-flower { animation:none; }
+}

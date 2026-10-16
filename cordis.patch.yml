@@ -1,0 +1,4 @@
+- insert:
+    - id: find-museum
+      name: "@xyb-community/find-museum"
+      config: {}

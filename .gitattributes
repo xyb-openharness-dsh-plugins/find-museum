@@ -1,0 +1,8 @@
+# Preserve source CSV bytes and vendor distributions, including CRLF.
+*.csv -text whitespace=cr-at-eol
+public/vendor/* -text -whitespace
+design/vendor/* -text -whitespace
+*.pdf -text
+*.png -text
+design/prototype-v0.1-standalone.html -whitespace
+reference/official/* -whitespace

@@ -1,0 +1,7 @@
+能力ID,用途,官方API或来源,目标Desktop与Harness,是否使用,本机核验证据,不可用时行为,验证状态
+CAP-REGISTER,注册业务页,desktopWorkbenches.register,待探测,是,待记录,显示可定位错误,未验证
+CAP-LAYOUT,业务整页或分栏,customFrame/layout,待探测,待选择,待记录,记录限制/选择合规布局,未验证
+CAP-OWNER,会话归属,目标版公开服务,待探测,视业务,检查调用方ctx与service,unavailable不伪装false,未验证
+CAP-DRAFT,原生草稿,目标版公开输入API,待探测,视业务,验证旧草稿/附件/竞态,保留任务可重试,未验证
+CAP-INSTALL,本地tgz安装,当版GUI/CLI帮助,待探测,是,记录实际profile与版本,交付已校验包并标未安装,未验证
+CAP-SCHEDULER,订阅定时执行,目标宿主支持能力,待探测,可选,真实触发/关机恢复,手工执行且不假称cron,未验证

@@ -1,0 +1,14 @@
+{
+  "source": "amap-mcp/maps_direction_driving",
+  "queriedAt": "2026-10-16",
+  "origin": "120.627856,31.322948",
+  "destination": "120.648596,31.253742",
+  "crs": "GCJ-02",
+  "mode": "driving",
+  "distanceMeters": 13506,
+  "durationSeconds": 1706,
+  "limitations": [
+    "Query-time route estimate; not a future date guarantee",
+    "One pilot leg only; not automatically used for other stop orders"
+  ]
+}
