@@ -1,0 +1,131 @@
+- generic [ref=e1]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e9]:
+        - text: 寻馆
+        - generic [ref=e10]: MUSEUM ATLAS
+      - generic [ref=e11]: v0.2.7
+      - generic "工作台连接状态" [ref=e12]:
+        - status "本地资料目录已就绪；详细路径可在数据配置中查看" [ref=e13]: 资料目录已连接
+        - status "请在 DSH Desktop 工作台中使用原生会话" [ref=e14]: 原生会话 · DSH 内可用
+      - generic [ref=e15]:
+        - text: 外观
+        - combobox "外观" [ref=e16]:
+          - option "宋韵" [selected]
+          - option "经典"
+      - button "大字" [ref=e17] [cursor=pointer]
+    - navigation "工作台页面" [ref=e18]:
+      - button "发现博物馆" [ref=e19] [cursor=pointer]
+      - button "设计路书 2" [ref=e2062] [cursor=pointer]:
+        - text: 设计路书
+        - generic [ref=e25]: "2"
+      - button "路书浏览" [ref=e26] [cursor=pointer]
+      - button "我的收藏" [ref=e29] [cursor=pointer]
+      - button "数据配置" [ref=e32] [cursor=pointer]
+    - generic [ref=e42]:
+      - paragraph [ref=e43]: 一座大馆之外，还有别的故事
+      - heading "路书浏览" [level=1] [ref=e2703]
+      - paragraph [ref=e45]: 按版本回顾行程，也可交给 Agent 继续完善。
+    - generic [ref=e1140]:
+      - generic [ref=e1141]:
+        - button "导入核实结果" [ref=e1142] [cursor=pointer]
+        - button "登记 Agent 结果" [ref=e1143] [cursor=pointer]
+      - generic "筛选路书浏览" [ref=e1144]:
+        - generic [ref=e1145]:
+          - text: 档案范围
+          - combobox "档案范围" [ref=e1146]:
+            - option "全部旅行" [selected]
+            - option "当前旅行"
+        - generic [ref=e1147]:
+          - text: 城市
+          - textbox "城市" [ref=e1148]:
+            - /placeholder: 筛选目的地
+            - text: 苏州
+        - generic [ref=e1149]:
+          - text: 状态
+          - combobox "状态" [ref=e1150]:
+            - option "最近路书" [selected]
+            - option "已存档"
+            - option "全部路书"
+            - option "待编排"
+            - option "已编排"
+            - option "已删除"
+      - generic [ref=e1151]:
+        - article [ref=e2704]:
+          - generic [ref=e2705]:
+            - generic [ref=e2706]:
+              - heading "UX-许晨好友苏州两日-复核" [level=3] [ref=e2707]
+              - generic [ref=e2708]: 第 4 版
+            - paragraph [ref=e2709]: 苏州 · 已编排 · 2 处
+            - time [ref=e2710]: 2026/10/17 07:16
+          - generic [ref=e2711]:
+            - button "浏览 →" [ref=e2712] [cursor=pointer]
+            - group [ref=e2713]:
+              - generic "UX-许晨好友苏州两日-复核第4版更多操作" [ref=e2714] [cursor=pointer]: 更多 ···
+        - article [ref=e2715]:
+          - generic [ref=e2716]:
+            - generic [ref=e2717]:
+              - heading "UX-林悦" [level=3] [ref=e2718]
+              - generic [ref=e2719]: 第 3 版
+            - paragraph [ref=e2720]: 苏州 · 已编排 · 2 处
+            - time [ref=e2721]: 2026/10/17 07:15
+          - generic [ref=e2722]:
+            - button "浏览 →" [ref=e2723] [cursor=pointer]
+            - group [ref=e2724]:
+              - generic "UX-林悦第3版更多操作" [ref=e2725] [cursor=pointer]: 更多 ···
+        - article [ref=e2726]:
+          - generic [ref=e2727]:
+            - generic [ref=e2728]:
+              - heading "UX-林悦" [level=3] [ref=e2729]
+              - generic [ref=e2730]: 第 2 版
+            - paragraph [ref=e2731]: 苏州 · 已编排 · 2 处
+            - time [ref=e2732]: 2026/10/17 07:15
+          - generic [ref=e2733]:
+            - button "浏览 →" [ref=e2734] [cursor=pointer]
+            - group [ref=e2735]:
+              - generic "UX-林悦第2版更多操作" [ref=e2736] [cursor=pointer]: 更多 ···
+        - article [ref=e2737]:
+          - generic [ref=e2738]:
+            - generic [ref=e2739]:
+              - heading "UX-周岚" [level=3] [ref=e2740]
+              - generic [ref=e2741]: 第 1 版
+            - paragraph [ref=e2742]: 苏州 · 已编排 · 2 处
+            - time [ref=e2743]: 2026/10/17 07:09
+          - generic [ref=e2744]:
+            - button "浏览 →" [ref=e2745] [cursor=pointer]
+            - group [ref=e2746]:
+              - generic "UX-周岚第1版更多操作" [ref=e2747] [cursor=pointer]: 更多 ···
+        - article [ref=e2748]:
+          - generic [ref=e2749]:
+            - generic [ref=e2750]:
+              - heading "UX-林悦" [level=3] [ref=e2751]
+              - generic [ref=e2752]: 第 1 版
+            - paragraph [ref=e2753]: 苏州 · 已编排 · 2 处
+            - time [ref=e2754]: 2026/10/17 07:05
+          - generic [ref=e2755]:
+            - button "浏览 →" [ref=e2756] [cursor=pointer]
+            - group [ref=e2757]:
+              - generic "UX-林悦第1版更多操作" [ref=e2758] [cursor=pointer]: 更多 ···
+  - dialog [ref=e1163]:
+    - generic [ref=e1164]:
+      - generic [ref=e2759]:
+        - heading "UX-许晨好友苏州两日-复核 · v4" [level=2] [ref=e2760]
+        - button "关闭 ×" [active] [ref=e2761] [cursor=pointer]
+      - region "弹窗内容" [ref=e2762]:
+        - generic [ref=e2763]: "# UX-许晨好友苏州两日-复核 目的地：苏州 · 已编排 · 输入版本 12 日期：待定；交通：公共交通 > 开放、预约、维修和交通需出发前核实；规划时长不等于馆方承诺。 ## 1. Day 1 · 苏州博物馆(本馆) - 类别：博物馆 - 地址：江苏省苏州市东北街204号 - 规划停留：360分钟 - 特色：以苏州历史、文化和艺术为主要内容的地方综合类博物馆。 - 典型文物：秘色瓷莲花碗（馆藏；是否在展待复核） - 交通：待核实 - 常规开放：09/25-09/27 10:00–20:00开放 最晚进入19:00；09/30-10/06 10:00–20:00开放 最晚进入19:00；01/01-09/24 周二–周日 09:00–17:00开放 最晚进入16:00；09/28-09/29 周二–周日 09:00–17:00开放 最晚进入16:00；10/07-12/31 周二–周日 09:00–17:00开放 最晚进入16:00；01/01-09/24 周一 全天不开放；09/28-09/29 周一 全天不开放；10/07-12/31 周一 全天不开放；春节,劳动节,端午节 09:00–17:00开放；夜间开放时间另行公布。如本馆遇有重大活动或重要设备设施维修保养时，可根据需要临时闭馆，届时将告示公众。；当天状态待核实 - 评分：来源未提供 - 来源：https://uri.amap.com/marker?position=120.627856,31.322948&name=苏州博物馆(本馆) - 信息核实日：2026-10-16 ## 2. Day 2 · 苏州吴文化博物馆 - 类别：博物馆 - 地址：江苏省苏州市澹台街9号 - 规划停留：240分钟 - 特色：从吴地历史与考古发现认识江南，馆方网站提供展览与参观信息。 - 典型文物：待补；馆藏不等于在展 - 交通：待核实 - 常规开放：全年 周二–周日 09:00–17:00开放 最晚进入16:30；全年 周一 全天不开放；元旦节,春节,清明节,劳动节,端午节,中秋节,国庆节 09:00–17:00开放 最晚进入16:30；当天状态待核实 - 评分：来源未提供 - 来源：https://uri.amap.com/marker?position=120.648596,31.253742&name=苏州吴文化博物馆 - 信息核实日：2026-10-16"
+        - generic [ref=e2764]:
+          - button "发送到原生 Agent" [ref=e2765] [cursor=pointer]
+          - button "和 Agent 定制 HTML" [ref=e2766] [cursor=pointer]
+          - button "修改路书" [ref=e2767] [cursor=pointer]
+        - group [ref=e2768]:
+          - generic "附件与 Agent 完善结果" [ref=e2769]
+        - group [ref=e2770]:
+          - generic "下载与分享给旅伴" [ref=e2771]
+          - paragraph [ref=e2772]: 分享版仅含公开地点、Day N 和来源。下载后可自行发给旅伴，不生成本机分享链接。
+          - generic [ref=e2773]:
+            - button "下载 HTML" [ref=e2774] [cursor=pointer]
+            - button "下载 MD" [ref=e2775] [cursor=pointer]
+            - button "下载 CSV" [ref=e2776] [cursor=pointer]
+            - button "下载 JSON" [ref=e2777] [cursor=pointer]
+            - button "复制行程摘要" [ref=e2778] [cursor=pointer]
+  - status: 路书已存档；继续设计将保留这一版
