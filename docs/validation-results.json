@@ -41,5 +41,13 @@
       24
     ],
     "commit": "efee35398e6406222b699f0dd06dabf9748df5ba"
+  },
+  "release": {
+    "tag": "v0.1.0",
+    "url": "https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.1.0",
+    "prerelease": true,
+    "downloadVerified": true,
+    "bytes": 323232,
+    "sha256": "8f6eeedd055b26529ea7832cd954579bad6c5d9a2eeb295b56fa7c14cf0069fe"
   }
 }

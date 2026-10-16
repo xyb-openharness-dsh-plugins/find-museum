@@ -14,6 +14,7 @@
 | Profile安装 | 成功，web Profile含bundle；五个主要安装文件与产物一致 | 安装日志有host peer提示，但真实宿主可解析全部peer |
 | 原有插件健康 | Profile所有依赖可解析，11投影保留，无需重建链接 | 未修改其它插件业务数据 |
 | 已装服务端入口 | Desktop内置Node实际import并注册29条路由，health正常、5535目录可读 | 隔离HTTP测试使用连接守卫替身，不代替真实会话UI |
+| GitHub预发布 | v0.1.0已上传；重新下载版本/323232字节/SHA-256一致 | Desktop UI待验，非市场收录 |
 | GitHub CI | Node22与24均通过，run 38838920136 | 对应初始提交efee353 |
 | Desktop内置dump-config | exit=0，包含@xyb-community/find-museum | 全局CLI环境不同，不能替代内置入口 |
 | Desktop重启后列表/左侧入口/真实业务 | **待用户完整重启后验证** | 不把安装成功写成已加载 |

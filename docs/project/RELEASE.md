@@ -43,3 +43,7 @@ DSH_HOME="$TASK_DSH_ROOT" PATH="$TASK_DSH_ROOT/.desktop-bin:$PATH" \
 开发提交与发布tag分别管理。首版tag和package版本一致；发布固定附件find-museum.tgz及校验文件，便于后续固定下载地址。Desktop未验完时使用GitHub预发布标识并明确边界。市场收录需要独立目录PR和真实安装截图，本轮不默认提交市场PR。
 
 本轮安装首次错误：pnpm add不接受--no-frozen-lockfile，移除后成功。全局dsh dump-config缺Desktop内置团队bundle；改用Desktop的harness-node-entry.mjs和app.asar内置dsh/lib/bin.js后exit=0且含本包。不是插件依赖缺失。
+
+## 0.1.0发布记录
+
+GitHub预发布：https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.1.0 。tag对应35bd2cc。附件find-museum.tgz共323232字节，SHA-256为8f6eeedd055b26529ea7832cd954579bad6c5d9a2eeb295b56fa7c14cf0069fe。上传后从Release重新下载，实际包内版本0.1.0、字节和校验附件一致。未投稿市场，Desktop重启后UI验收尚未完成，保持预发布标识。
