@@ -30,6 +30,7 @@
 ## 市场投稿状态
 
 - 已获授权向 `dataelement/awesome-dsh-workbench` 投稿。
+- 已提交 PR：<https://github.com/dataelement/awesome-dsh-workbench/pull/57>（2026-10-16）。
 - 投稿目录仅新增 `data/workbenches/xyb-openharness-dsh-plugins__find-museum.yml`。
 - 分类使用 `other`；PR 描述包含“建议新增分类：旅行”。
-- 只有取得真实 PR URL 后才记录为已提交；合并后市场目录可读到条目时才记录为已上架。
+- 当前状态为待市场审核，尚未合并；因此尚未上架。
