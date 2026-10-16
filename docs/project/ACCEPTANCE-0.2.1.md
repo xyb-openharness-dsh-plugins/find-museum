@@ -22,3 +22,7 @@
 - 介绍/文物/交通提供字段与Agent互动搜索路径，没有虚构全部馆资料已补齐。自动图片转线稿未实现；现有SVG为原创意象。生成文件需用户登记，不监听全部聊天。
 - API直接export保留兼容；UI下载路径要求先核实。没有云协作/公开分享链接，文件由用户自行发给旅伴。
 - 未提交市场PR；最终Desktop真实截图缺失，不能称已上架。当前适合GitHub预发布，不能称正式实机验收完成。
+
+## Git交付
+
+源码提交c3b74e6，tag v0.2.1已推送。预发布：https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.2.1 。三份附件已上传；重新下载tgz及校验文件，与本机483545字节产物及上述SHA-256一致。该提交的两项GitHub Actions均成功。再次尝试取得Desktop窗口返回cgWindowNotFound，因此未补写实机通过或市场投稿状态。
