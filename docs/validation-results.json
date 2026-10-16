@@ -1,17 +1,45 @@
 {
-  "project":"find-museum",
-  "version":"0.1.0",
-  "date":"2026-10-16",
-  "tests":{"total":29,"passed":29,"failed":0},
-  "catalog":{"records":5535,"baseYear":2019,"initialLocatedVenues":5},
-  "build":"passed",
-  "packageContract":"passed",
-  "extractedRuntime":"passed",
-  "desktopInstall":"passed",
-  "installedBytesMatch":true,
-  "desktopBundledDumpConfig":"passed",
-  "desktopRestartedAndLoaded":"unverified",
-  "nativeSessionActualUI":"unverified",
-  "credentialsBundled":false,
-  "officialStandardRefreshed":"2026-10-16; unchanged"
+  "project": "find-museum",
+  "version": "0.1.0",
+  "date": "2026-10-16",
+  "tests": {
+    "total": 29,
+    "passed": 29,
+    "failed": 0
+  },
+  "catalog": {
+    "records": 5535,
+    "baseYear": 2019,
+    "initialLocatedVenues": 5
+  },
+  "build": "passed",
+  "packageContract": "passed",
+  "extractedRuntime": "passed",
+  "desktopInstall": "passed",
+  "installedBytesMatch": true,
+  "desktopBundledDumpConfig": "passed",
+  "desktopRestartedAndLoaded": "unverified",
+  "nativeSessionActualUI": "unverified",
+  "credentialsBundled": false,
+  "officialStandardRefreshed": "2026-10-16; unchanged",
+  "hostNodeTests": {
+    "node": "24.17.0",
+    "passed": 29,
+    "total": 29
+  },
+  "installedServerImport": {
+    "passed": true,
+    "routes": 29,
+    "catalog": 5535,
+    "authGuard": "test double, not actual desktop session"
+  },
+  "githubCI": {
+    "conclusion": "success",
+    "run": 38838920136,
+    "node": [
+      22,
+      24
+    ],
+    "commit": "efee35398e6406222b699f0dd06dabf9748df5ba"
+  }
 }

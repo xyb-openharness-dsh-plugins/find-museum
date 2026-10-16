@@ -1,6 +1,6 @@
 # 首版验收记录 · 0.1.0
 
-日期2026-10-16，macOS arm64，Desktop0.11.1。开发测试Node22.19，Desktop内置Node24.17。用户已授权开发/测试/发布/Git，业务原型与增补要求保留在SPEC/PARITY。
+日期2026-10-16，macOS arm64，Desktop0.11.1。开发测试Node22.19，Desktop内置Node24.17，两套运行时均29/29测试通过。用户已授权开发/测试/发布/Git，业务原型与增补要求保留在SPEC/PARITY。
 
 | 项目 | 实际结果 | 边界 |
 | --- | --- | --- |
@@ -13,6 +13,8 @@
 | 实际tgz | 29文件，约323KB，临时解包服务健康/5535目录通过 | 最新SHA-256见dist/release.json及Release附件 |
 | Profile安装 | 成功，web Profile含bundle；五个主要安装文件与产物一致 | 安装日志有host peer提示，但真实宿主可解析全部peer |
 | 原有插件健康 | Profile所有依赖可解析，11投影保留，无需重建链接 | 未修改其它插件业务数据 |
+| 已装服务端入口 | Desktop内置Node实际import并注册29条路由，health正常、5535目录可读 | 隔离HTTP测试使用连接守卫替身，不代替真实会话UI |
+| GitHub CI | Node22与24均通过，run 38838920136 | 对应初始提交efee353 |
 | Desktop内置dump-config | exit=0，包含@xyb-community/find-museum | 全局CLI环境不同，不能替代内置入口 |
 | Desktop重启后列表/左侧入口/真实业务 | **待用户完整重启后验证** | 不把安装成功写成已加载 |
 | 原生会话真实UI/草稿/模式切换 | **待Desktop加载后实测** | 6条契约测试已过，非实机等价证据 |
