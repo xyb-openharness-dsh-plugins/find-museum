@@ -1417,3 +1417,172 @@ dialog {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* 0.2: layout responds to the business iframe, not the Desktop window. */
+body {
+  font-size: 16px;
+}
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.tabs button {
+  justify-content: center;
+  white-space: nowrap;
+  padding: 14px 8px;
+  font-size: 15px;
+  min-height: 48px;
+  min-width: 0;
+}
+.tabs button svg {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+}
+.mobile-nav {
+  display: none;
+}
+.discovery-next {
+  position: sticky;
+  bottom: 12px;
+  z-index: 401;
+  background: #f5f8f3f5;
+  border: 1px solid #cbd9d1;
+  border-radius: 16px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 4px 22px #284a3510;
+}
+.discovery-next[hidden] {
+  display: none;
+}
+.config-section {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #dbe1da;
+  border-radius: 16px;
+}
+.config-section summary,
+.key-guide summary,
+.collection-panel summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 32px;
+}
+.key-guide {
+  margin: 16px 0;
+}
+.config-section:not([open]) > *:not(summary) {
+  display: none;
+}
+.archive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.roadbook-preview {
+  max-height: 55vh;
+  overflow: auto;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.recommendations {
+  padding: 12px 0 24px;
+}
+.artifact-row {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 759px) and (min-width: 480px) {
+  .tabs {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .tabs button {
+    grid-column: span 2;
+  }
+  .tabs button:nth-last-child(-n + 2) {
+    grid-column: span 3;
+  }
+}
+@media (max-width: 479px) {
+  .tabs {
+    display: none;
+  }
+  .mobile-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+  }
+  .mobile-nav select {
+    flex: 1;
+    min-width: 0;
+  }
+  .discovery-next {
+    padding: 12px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .projectbar {
+    flex-wrap: wrap;
+  }
+}
+
+.museum-card p,
+.route-main p,
+.intro-note,
+.config-section p,
+.action-form label,
+.roadbook-preview {
+  font-size: 16px;
+  line-height: 1.7;
+}
+.micro,
+.museum-card small,
+.artifact-row small,
+.collection-row small {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.route-toolbar button,
+.outline,
+.primary,
+.chip {
+  font-size: 15px;
+  min-height: 44px;
+}
+body.large .museum-card p,
+body.large .route-main p,
+body.large .config-section p,
+body.large .roadbook-preview,
+body.large .action-form label {
+  font-size: 19px;
+}
+body.large .micro,
+body.large small {
+  font-size: 16px;
+}
+body.large .tabs button {
+  font-size: 17px;
+}
+@media (max-width: 479px) {
+  .business {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .projectbar select {
+    max-width: 190px;
+  }
+  .intro {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .route-options {
+    flex-wrap: wrap;
+  }
+}

@@ -20,7 +20,7 @@ export class TripStore {
       "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=3000;",
     );
     this.db.exec(
-      `CREATE TABLE IF NOT EXISTS migration_ledger(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS trip(id TEXT PRIMARY KEY,title TEXT NOT NULL,settings_json TEXT NOT NULL,revision INTEGER NOT NULL CHECK(revision>0),archived INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS trip_stop(trip_id TEXT NOT NULL REFERENCES trip(id) ON DELETE CASCADE,venue_id TEXT NOT NULL,position INTEGER NOT NULL,day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 30),minutes INTEGER NOT NULL CHECK(minutes BETWEEN 240 AND 480),PRIMARY KEY(trip_id,venue_id),UNIQUE(trip_id,position)); CREATE TABLE IF NOT EXISTS trip_selection(trip_id TEXT NOT NULL REFERENCES trip(id),venue_id TEXT NOT NULL,position INTEGER NOT NULL,PRIMARY KEY(trip_id,venue_id)); INSERT OR IGNORE INTO migration_ledger VALUES(1,datetime('now'));`,
+      `CREATE TABLE IF NOT EXISTS migration_ledger(version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS trip(id TEXT PRIMARY KEY,title TEXT NOT NULL,settings_json TEXT NOT NULL,revision INTEGER NOT NULL CHECK(revision>0),archived INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS trip_stop(trip_id TEXT NOT NULL REFERENCES trip(id) ON DELETE CASCADE,venue_id TEXT NOT NULL,position INTEGER NOT NULL,day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 30),minutes INTEGER NOT NULL CHECK(minutes BETWEEN 15 AND 480),PRIMARY KEY(trip_id,venue_id),UNIQUE(trip_id,position)); CREATE TABLE IF NOT EXISTS trip_selection(trip_id TEXT NOT NULL REFERENCES trip(id),venue_id TEXT NOT NULL,position INTEGER NOT NULL,PRIMARY KEY(trip_id,venue_id)); INSERT OR IGNORE INTO migration_ledger VALUES(1,datetime('now'));`,
     );
   }
   create(title, settings = {}) {
@@ -73,7 +73,14 @@ export class TripStore {
     { transaction = true } = {},
   ) {
     this.validate(title, settings);
-    validateStops(stops);
+    const kinds = this.db
+      .prepare("SELECT name FROM sqlite_master WHERE name='venue_override'")
+      .get()
+      ? new Map(this.overrides().map((v) => [v.id, v.kind || "museum"]))
+      : new Map();
+    validateStops(
+      stops.map((s) => ({ ...s, kind: s.kind || kinds.get(s.id) || "museum" })),
+    );
     if (!Number.isInteger(expectedRevision) || expectedRevision < 1)
       throw new TypeError("必须提供当前revision");
     if (transaction) this.db.exec("BEGIN IMMEDIATE");
@@ -146,6 +153,22 @@ TripStore.prototype.prepareBusinessTables = function () {
     this.db.exec(
       `BEGIN IMMEDIATE; INSERT OR IGNORE INTO trip_selection SELECT trip_id,venue_id,position FROM trip_stop; INSERT INTO migration_ledger VALUES(4,datetime('now')); COMMIT;`,
     );
+  }
+  if (
+    !this.db
+      .prepare("SELECT version FROM migration_ledger WHERE version=5")
+      .get()
+  ) {
+    this.db
+      .prepare("VACUUM INTO ?")
+      .run(join(this.root, "trips.pre-v5-" + Date.now() + ".sqlite"));
+    this.db.exec(`BEGIN IMMEDIATE;
+      ALTER TABLE trip_stop RENAME TO trip_stop_v4;
+      CREATE TABLE trip_stop(trip_id TEXT NOT NULL REFERENCES trip(id) ON DELETE CASCADE,venue_id TEXT NOT NULL,position INTEGER NOT NULL,day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 30),minutes INTEGER NOT NULL CHECK(minutes BETWEEN 15 AND 480),PRIMARY KEY(trip_id,venue_id),UNIQUE(trip_id,position));
+      INSERT INTO trip_stop SELECT * FROM trip_stop_v4; DROP TABLE trip_stop_v4;
+      CREATE TABLE roadbook_version(id TEXT PRIMARY KEY,trip_id TEXT NOT NULL REFERENCES trip(id),version INTEGER NOT NULL,input_revision INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(trip_id,version),UNIQUE(trip_id,input_revision));
+      CREATE TABLE recommendation_cache(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL,created_at TEXT NOT NULL);
+      INSERT INTO migration_ledger VALUES(5,datetime('now')); COMMIT;`);
   }
 };
 TripStore.prototype.importPlan = function (t, venues, stops) {
@@ -332,4 +355,57 @@ TripStore.prototype.importSelection = function (t, venues) {
     this.db.exec("ROLLBACK");
     throw e;
   }
+};
+
+TripStore.prototype.savePlaces = function (places) {
+  const stmt = this.db.prepare(
+    "INSERT INTO venue_override VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,updated_at=excluded.updated_at",
+  );
+  for (const place of places)
+    stmt.run(place.id, JSON.stringify(place), new Date().toISOString());
+};
+TripStore.prototype.saveRoadbook = function (t, places) {
+  const existing = this.db
+    .prepare(
+      "SELECT * FROM roadbook_version WHERE trip_id=? AND input_revision=?",
+    )
+    .get(t.id, t.revision);
+  if (existing) return { ...existing, snapshot: JSON.parse(existing.snapshot) };
+  const id = randomUUID(),
+    version = this.db
+      .prepare(
+        "SELECT COALESCE(MAX(version),0)+1 AS v FROM roadbook_version WHERE trip_id=?",
+      )
+      .get(t.id).v;
+  const snapshot = {
+    title: t.title,
+    tripId: t.id,
+    revision: t.revision,
+    status: t.stops.length ? "planned" : "draft",
+    destination: t.settings.destination,
+    date: t.settings.date,
+    mode: t.settings.mode,
+    selections: (t.selections || [])
+      .map((id) => places.find((v) => v.id === id))
+      .filter(Boolean),
+    stops: t.stops.map((s) => ({ ...places.find((v) => v.id === s.id), ...s })),
+  };
+  const now = new Date().toISOString();
+  this.db
+    .prepare("INSERT INTO roadbook_version VALUES(?,?,?,?,?,?)")
+    .run(id, t.id, version, t.revision, JSON.stringify(snapshot), now);
+  return {
+    id,
+    trip_id: t.id,
+    version,
+    input_revision: t.revision,
+    snapshot,
+    created_at: now,
+  };
+};
+TripStore.prototype.roadbooks = function () {
+  return this.db
+    .prepare("SELECT * FROM roadbook_version ORDER BY created_at DESC")
+    .all()
+    .map((r) => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
 };

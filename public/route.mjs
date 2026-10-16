@@ -72,10 +72,14 @@ export function validateStops(stops) {
       s.day < 1 ||
       s.day > 30 ||
       !Number.isInteger(s.minutes) ||
-      s.minutes < 240 ||
-      s.minutes > 480
+      s.minutes <
+        (["food", "attraction", "citywalk"].includes(s.kind) ? 15 : 240) ||
+      s.minutes > 480 ||
+      (s.kind && !["museum", "food", "attraction", "citywalk"].includes(s.kind))
     )
-      throw new TypeError("站点字段无效或重复（参观时长须为240–480分钟）");
+      throw new TypeError(
+        "站点字段无效或重复（博物馆240–480分钟；其他地点15–480分钟）",
+      );
     seen.add(s.id);
   }
   return stops;

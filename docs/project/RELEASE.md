@@ -47,3 +47,9 @@ DSH_HOME="$TASK_DSH_ROOT" PATH="$TASK_DSH_ROOT/.desktop-bin:$PATH" \
 ## 0.1.0发布记录
 
 GitHub预发布：https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.1.0 。tag对应35bd2cc。附件find-museum.tgz共323232字节，SHA-256为8f6eeedd055b26529ea7832cd954579bad6c5d9a2eeb295b56fa7c14cf0069fe。上传后从Release重新下载，实际包内版本0.1.0、字节和校验附件一致。未投稿市场，Desktop重启后UI验收尚未完成，保持预发布标识。
+
+## 0.2.0预发布准备
+
+新增旅行地点收藏/推荐、明确三步引导、折叠配置、冻结路书版本、附件预览/分享与清单切换按钮；MIT已确认。Node22/24均37项测试通过，实际包32文件、335455字节，SHA-256为5bbdbb951c8130ece5d58fd7c71a7de828fe36f55eb3435005346a496e102873。安装副本9个关键文件一致，15个原依赖全部可解析，内置Node实际入口32路由可加载。
+
+0.2仍使用预发布标识：浏览器受扩展界面阻挡，Desktop完整重启与真实界面/原生会话验收未完成。投稿指令已保存，但无最终真实截图，不提交市场收录PR。

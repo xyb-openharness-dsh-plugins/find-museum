@@ -1,4 +1,5 @@
 import { distanceKm, withinRadius, moveStop } from "./route.mjs";
+import { placeKinds, roadbookText, publicSnapshot } from "./roadbook.mjs";
 import { attachAmap } from "./map.mjs";
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
@@ -18,6 +19,8 @@ let boot = {
     trips: [],
     favorites: [],
     artifacts: [],
+    roadbooks: [],
+    settings: {},
     candidates: [],
     configured: false,
   },
@@ -186,11 +189,17 @@ async function reload() {
   $("#choose-root").textContent = boot.configured
     ? "切换资料目录"
     : "选择资料目录";
+  const museums = boot.venues.filter(
+    (v) =>
+      (!v.kind || v.kind === "museum") &&
+      Number.isFinite(v.latitude) &&
+      Number.isFinite(v.longitude),
+  );
   $("#coverage").textContent =
-    `已定位 ${boot.venues.length} 处馆址 · 开放状态需按日期核实`;
-  $("#located-count").textContent = boot.venues.length;
+    `已定位 ${museums.length} 处馆址 · 开放状态需按日期核实`;
+  $("#located-count").textContent = museums.length;
   $("#venue-total").textContent =
-    `${boot.venues.length} 个馆址，${new Set(boot.venues.map((v) => v.museumId)).size} 个机构`;
+    `${museums.length} 个馆址，${new Set(museums.map((v) => v.museumId || v.id)).size} 个机构；另有 ${boot.venues.length - museums.length} 处旅行地点`;
   $("#map-config-status").textContent = boot.settings.amapConfigured
     ? "已配置 · 不回显"
     : "未配置，地图暂不可用";
@@ -286,7 +295,9 @@ function newTrip() {
             destination: $("#city").value,
             date,
             mode: "尚未决定",
-            center,
+            center: centerName.includes($("#city").value.replace(/市$/, ""))
+              ? center
+              : null,
           },
         }),
       });
@@ -294,7 +305,8 @@ function newTrip() {
       trip = r.trip;
       localStorage.setItem(lastTripKey, trip.id);
       renderProjects();
-      refresh();
+      await commitDraftSelection();
+      showTab("route");
       if (isEmbedded)
         await bridge("trip-created", {
           tripId: trip.id,
@@ -306,6 +318,49 @@ function newTrip() {
       toast("旅行已创建并保存");
     },
   );
+}
+let draftSelection = [];
+try {
+  const staged = JSON.parse(
+    localStorage.getItem("find-museum-unassigned") || "[]",
+  );
+  if (Array.isArray(staged))
+    draftSelection = staged
+      .filter((v) => v && typeof v.id === "string")
+      .slice(0, 100);
+} catch {}
+function stagePlaces(rows) {
+  draftSelection = [
+    ...new Map([...draftSelection, ...rows].map((v) => [v.id, v])).values(),
+  ];
+  localStorage.setItem(
+    "find-museum-unassigned",
+    JSON.stringify(draftSelection),
+  );
+  refresh();
+  toast("已暂存清单；下一步选择或新建旅行后保存");
+}
+async function commitDraftSelection() {
+  if (!draftSelection.length) return;
+  const t = needTrip();
+  for (let offset = 0; offset < draftSelection.length; offset += 30) {
+    if (trip?.id !== t.id) throw new Error("旅行已切换，暂存清单仍保留");
+    const r = await api("/selection-import", {
+      method: "POST",
+      body: JSON.stringify({
+        tripId: t.id,
+        inputRevision: trip.revision,
+        venues: draftSelection.slice(offset, offset + 30),
+      }),
+    });
+    if (trip?.id !== t.id) throw new Error("旅行已切换，暂存清单仍保留");
+    trip = r.trip;
+    boot.venues = r.venues;
+    boot.candidates = r.candidates;
+  }
+  draftSelection = [];
+  localStorage.removeItem("find-museum-unassigned");
+  refresh();
 }
 function collectedVenues() {
   return (trip?.selections || [])
@@ -322,7 +377,11 @@ function located() {
   const q = $("#query").value.trim(),
     grade = $("#grade").value,
     radius = Number($("#radius").value);
-  return withinRadius(boot.venues, center, radius).located.filter(
+  return withinRadius(
+    boot.venues.filter((v) => !v.kind || v.kind === "museum"),
+    center,
+    radius,
+  ).located.filter(
     (v) =>
       (!q || [v.name, v.intro, ...(v.themes || [])].join(" ").includes(q)) &&
       (!grade || v.grade === grade) &&
@@ -333,13 +392,15 @@ function located() {
   );
 }
 function card(v) {
-  const selected = trip?.selections?.includes(v.id),
+  const selected =
+      trip?.selections?.includes(v.id) ||
+      draftSelection.some((x) => x.id === v.id),
     fav = boot.favorites.some((f) => f.id === v.id);
   let distance = "待定位";
   try {
     distance = distanceKm(center, v).toFixed(1) + " km · 直线";
   } catch {}
-  return `<article class="museum-card"><div class="card-top"><span class="category ${v.county ? "county" : ""}">${esc(v.label || "已定位馆址")}</span><span class="distance">${distance}</span></div><h3><button class="card-detail" data-detail="${esc(v.id)}">${esc(v.name)}</button></h3><p>${esc(v.intro || "特色介绍待核实，可交给 Agent 补充。")}</p><div class="card-tags">${(v.themes || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}<span class="tag pending">${status(v)}</span></div><div class="card-actions"><button class="outline" data-add="${esc(v.id)}">${selected ? "✓ 已加入清单" : "+ 加入清单"}</button><button class="quiet" data-favorite="${esc(v.id)}" aria-label="${fav ? "取消收藏" : "收藏"}${esc(v.name)}">${fav ? "♥" : "♡"}</button><span class="grade-note">${v.grade ? "机构" + esc(v.grade) + " · " + esc(v.gradeAsOf || "年份待核实") : "等级待核实"}</span></div></article>`;
+  return `<article class="museum-card"><div class="card-top"><span class="category ${v.county ? "county" : ""}">${esc(placeKinds[v.kind] || v.label || "博物馆")}</span><span class="distance">${distance}</span></div><h3><button class="card-detail" data-detail="${esc(v.id)}">${esc(v.name)}</button></h3><p>${esc(v.intro || "特色介绍待核实，可交给 Agent 补充。")} ${v.rating ? `<small>高德评分 ${esc(v.rating.value)}${v.rating.scale ? " / " + esc(v.rating.scale) : "（原始值）"}</small>` : ""}</p><div class="card-tags">${(v.themes || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}<span class="tag pending">${status(v)}</span></div><div class="card-actions"><button class="outline" data-add="${esc(v.id)}" aria-pressed="${!!selected}" title="${selected ? "再次点击移出本次清单" : "加入本次清单"}">${selected ? "✓ 已加入清单" : "+ 加入清单"}</button><button class="quiet" data-favorite="${esc(v.id)}" aria-label="${fav ? "取消收藏" : "收藏"}${esc(v.name)}">${fav ? "♥" : "♡"}</button><span class="grade-note">${v.grade ? "机构" + esc(v.grade) + " · " + esc(v.gradeAsOf || "年份待核实") : "等级待核实"}</span></div></article>`;
 }
 function status(v) {
   if (
@@ -441,23 +502,27 @@ function initMap() {
 function renderMap(list) {
   if (!map) return;
   mapLayer.clearLayers();
-  list.forEach((v) => {
-    const i = trip?.stops.findIndex((s) => s.id === v.id) ?? -1;
-    L.marker([v.latitude, v.longitude], {
-      title: v.name,
-      icon: L.divIcon({
-        className: "",
-        html: `<div class="pin ${v.county ? "small-museum" : ""}">${i >= 0 ? i + 1 : "·"}</div>`,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15],
-      }),
-    })
-      .addTo(mapLayer)
-      .bindTooltip(esc(v.name))
-      .on("click", () => detail(v.id));
-  });
+  list
+    .filter((v) => Number.isFinite(v.latitude) && Number.isFinite(v.longitude))
+    .forEach((v) => {
+      const i = trip?.stops.findIndex((s) => s.id === v.id) ?? -1;
+      L.marker([v.latitude, v.longitude], {
+        title: v.name,
+        icon: L.divIcon({
+          className: "",
+          html: `<div class="pin ${v.county ? "small-museum" : ""}">${i >= 0 ? i + 1 : "·"}</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+      })
+        .addTo(mapLayer)
+        .bindTooltip(esc(v.name))
+        .on("click", () => detail(v.id));
+    });
   if (routeLine) map.removeLayer(routeLine);
-  const rows = selectedVenues();
+  const rows = selectedVenues().filter(
+    (v) => Number.isFinite(v.latitude) && Number.isFinite(v.longitude),
+  );
   if (rows.length > 1)
     routeLine = L.polyline(
       rows.map((v) => [v.latitude, v.longitude]),
@@ -466,6 +531,14 @@ function renderMap(list) {
 }
 function showTab(t) {
   tab = t;
+  $("#mobile-page").value = t;
+  $(".searchbar").hidden = t !== "discover";
+  $("#discovery-next").hidden = t !== "discover";
+  document
+    .querySelectorAll("[data-tab]")
+    .forEach((b) =>
+      b.setAttribute("aria-current", b.dataset.tab === t ? "page" : "false"),
+    );
   document
     .querySelectorAll(".page")
     .forEach((p) => (p.hidden = p.id !== t + "-page"));
@@ -476,15 +549,24 @@ function showTab(t) {
     t === "discover"
       ? ($("#city").value || "目的地") + "，馆里见。"
       : {
-          route: "把喜欢的馆，串起来",
-          favorites: "留一份好奇，给下一次",
-          results: "走过之后，也有回响",
-          data: "每一条信息，都有来处",
+          route: "设计路书",
+          favorites: "我的收藏",
+          results: "路书档案",
+          data: "数据配置",
         }[t];
   refresh();
   if (t === "discover") requestAnimationFrame(() => map?.invalidateSize());
 }
 function refresh() {
+  const selectedCount = (trip?.selections?.length || 0) + draftSelection.length;
+  $("#discovery-selection").textContent = selectedCount
+    ? `本次已选 ${selectedCount} 处${draftSelection.length ? " · 部分尚未保存到旅行" : ""}`
+    : "先选几处感兴趣的馆";
+  $("#discovery-design").disabled = !selectedCount;
+  $("#map-summary").textContent = boot.settings.amapConfigured
+    ? "已配置"
+    : "未配置";
+  if (!boot.settings.amapConfigured) $("#map-settings").open = true;
   $("#route-count").textContent = trip?.selections?.length || 0;
   if (tab === "discover") renderDiscovery();
   if (tab === "route") renderRoute();
@@ -520,29 +602,45 @@ function renderRoute() {
             )
             .join(
               "",
-            )}</select> 天</label><label>参观 <select data-minutes="${esc(v.id)}">${durationOptions(v.minutes)}</select></label></div></div><div class="stop-controls"><button class="quiet" data-move="${esc(v.id)}" data-delta="-1" aria-label="上移${esc(v.name)}" ${i === 0 ? "disabled" : ""}>↑</button><button class="quiet" data-move="${esc(v.id)}" data-delta="1" aria-label="下移${esc(v.name)}" ${i === rr.length - 1 ? "disabled" : ""}>↓</button><button class="quiet" data-remove="${esc(v.id)}" aria-label="移除${esc(v.name)}">×</button></div></article>`,
+            )}</select> 天</label><label>参观 <select data-minutes="${esc(v.id)}">${durationOptions(v.minutes, v.kind)}</select></label></div></div><div class="stop-controls"><button class="quiet" data-move="${esc(v.id)}" data-delta="-1" aria-label="上移${esc(v.name)}" ${i === 0 ? "disabled" : ""}>↑</button><button class="quiet" data-move="${esc(v.id)}" data-delta="1" aria-label="下移${esc(v.name)}" ${i === rr.length - 1 ? "disabled" : ""}>↓</button><button class="quiet" data-remove="${esc(v.id)}" aria-label="移除${esc(v.name)}">×</button></div></article>`,
       )
       .join("") ||
     '<div class="empty">清单与路线分开保存；收集好后点击“开始排序 / 调整 Day N”。</div>';
   let km = 0;
   for (let i = 1; i < rr.length; i++)
-    if (rr[i].day === rr[i - 1].day) km += distanceKm(rr[i - 1], rr[i]);
+    if (rr[i].day === rr[i - 1].day) {
+      try {
+        km += distanceKm(rr[i - 1], rr[i]);
+      } catch {}
+    }
   $("#distance-total").textContent =
-    `${rr.length}馆址 · 同日相邻直线合计${km.toFixed(1)}km（非路程）`;
+    `${rr.length}处地点 · 同日相邻直线合计${km.toFixed(1)}km（非路程）`;
 }
 function renderFavorites() {
   $("#favorites-list").innerHTML =
     boot.favorites
+      .filter(
+        (f) =>
+          !$("#favorite-status").value ||
+          (f.visited ? "visited" : "wish") === $("#favorite-status").value,
+      )
+      .filter(
+        (f) =>
+          !$("#favorite-kind").value ||
+          (boot.venues.find((v) => v.id === f.id)?.kind || "museum") ===
+            $("#favorite-kind").value,
+      )
       .map((f) => {
         const v = boot.venues.find((v) => v.id === f.id);
         return v
           ? card(v) +
-              `<div class="favorite-extra"><label><input type="checkbox" data-visited="${esc(v.id)}" ${f.visited ? "checked" : ""}> 已参观</label><textarea class="favorite-note" data-note="${esc(v.id)}" aria-label="${esc(v.name)}笔记" placeholder="记下感兴趣的展品或参观感受">${esc(f.note || "")}</textarea></div>`
+              `<div class="favorite-extra"><label><input type="checkbox" data-visited="${esc(v.id)}" ${f.visited ? "checked" : ""}> 已到访</label><textarea class="favorite-note" data-note="${esc(v.id)}" aria-label="${esc(v.name)}笔记" placeholder="记下感兴趣的展品或参观感受">${esc(f.note || "")}</textarea></div>`
           : "";
       })
       .join("") || '<div class="empty">收藏的馆和参观笔记会保存在本机。</div>';
 }
 function renderResults() {
+  renderRoadbookList();
   $("#candidate-list").innerHTML = boot.candidates
     .filter((x) => x.status === "pending" && (!trip || x.trip_id === trip.id))
     .map(
@@ -552,10 +650,14 @@ function renderResults() {
     .join("");
   $("#results-list").innerHTML =
     boot.artifacts
-      .filter((a) => !trip || a.trip_id === trip.id)
+      .filter(
+        (a) =>
+          !a.payload.roadbookId &&
+          ($("#archive-scope").value === "all" || a.trip_id === trip?.id),
+      )
       .map(
         (a) =>
-          `<article class="artifact-row"><b>${esc(a.payload.title || a.kind)}</b><small>${esc(a.created_at)} · ${esc(a.payload.format)} · 输入revision ${a.payload.revision}</small><a href="/api/find-museum/file?id=${encodeURIComponent(a.id)}" download>打开/下载结果文件 →</a><small>SHA-256：${esc(a.payload.sha256)}</small></article>`,
+          `<article class="artifact-row"><b>${esc(a.payload.title || a.kind)}</b><small>${esc(a.created_at)} · ${esc(a.payload.format)} · 输入revision ${a.payload.revision}</small><button class="outline" data-artifact-preview="${esc(a.id)}">浏览内容</button><a href="/api/find-museum/file?id=${encodeURIComponent(a.id)}" download>下载文件 →</a><details><summary>文件与来源</summary><small>SHA-256：${esc(a.payload.sha256)}</small></details></article>`,
       )
       .join("") ||
     '<div class="empty">导出路线、导入核实候选或保存路书后，可在这里回顾。</div>';
@@ -564,7 +666,7 @@ async function detail(id) {
   const v = boot.venues.find((x) => x.id === id);
   if (!v) return;
   $("#detail-content").innerHTML =
-    `<div class="dialog-head"><div><p class="eyebrow">${esc(v.label || "馆址")} · ${esc(v.district || "")}</p><h2>${esc(v.name)}</h2></div><button class="quiet" data-close="detail">关闭 ×</button></div><div class="detail-section"><h3>特色与展品</h3><p>${esc(v.intro || "介绍待核实")}</p><p>${esc(v.featuredExhibits || "具体在展展品待核实")}</p>${v.introSource ? `<a href="${esc(v.introSource)}" target="_blank" rel="noopener noreferrer">介绍来源 ↗</a>` : ""}</div><div class="detail-section"><h3>位置</h3><p>${esc(v.address)}<br>${v.longitude}, ${v.latitude} · ${esc(v.crs)}</p><a href="${esc(v.sourceUrl)}" target="_blank" rel="noopener noreferrer">位置来源 ↗</a><button class="quiet" data-center="${esc(v.id)}">以此馆为周边中心</button></div><div class="detail-section"><h3>常规时间与临时状态</h3><p>${esc(v.openingHours || "未知")}</p><p class="soft-note">${status(v)}；核实日：${esc(v.checkedAt || "未记录")}；有效期：${esc(v.validFrom || "未确认")} 至 ${esc(v.validTo || "未确认")}</p></div><div class="detail-section"><h3>官网与公众号</h3>${v.officialUrl ? `<a href="${esc(v.officialUrl)}" target="_blank" rel="noopener noreferrer">官网/主管部门 ↗</a>` : "<p>官网待核实</p>"}<p>${esc(v.wechatName || "公众号账号待核实")}</p>${v.wechatUrl ? `<a href="${esc(v.wechatUrl)}" target="_blank" rel="noopener noreferrer">公众号来源 ↗</a>` : ""}</div><div class="card-actions"><button class="primary" data-add="${esc(v.id)}">加入路线</button><button class="outline" data-advice="${esc(v.id)}">请 Agent 核实</button></div>`;
+    `<div class="dialog-head"><div><p class="eyebrow">${esc(v.label || "馆址")} · ${esc(v.district || "")}</p><h2>${esc(v.name)}</h2></div><button class="quiet" data-close="detail">关闭 ×</button></div><div class="detail-section"><h3>特色与展品</h3><p>${esc(v.intro || "介绍待核实")}</p><p>${esc(v.featuredExhibits || "具体在展展品待核实")}</p>${v.introSource ? `<a href="${esc(v.introSource)}" target="_blank" rel="noopener noreferrer">介绍来源 ↗</a>` : ""}</div><div class="detail-section"><h3>位置</h3><p>${esc(v.address)}<br>${v.unlocated ? "尚未定位，不参加地图或距离计算" : esc(v.longitude) + ", " + esc(v.latitude) + " · " + esc(v.crs)}</p><a href="${esc(v.sourceUrl)}" target="_blank" rel="noopener noreferrer">位置来源 ↗</a><button class="quiet" data-center="${esc(v.id)}" ${v.unlocated ? "disabled" : ""}>以此地点为周边中心</button></div><div class="detail-section"><h3>常规时间与临时状态</h3><p>${esc(v.openingHours || "未知")}</p><p class="soft-note">${status(v)}；核实日：${esc(v.checkedAt || "未记录")}；有效期：${esc(v.validFrom || "未确认")} 至 ${esc(v.validTo || "未确认")}</p></div><div class="detail-section"><h3>官网与公众号</h3>${v.officialUrl ? `<a href="${esc(v.officialUrl)}" target="_blank" rel="noopener noreferrer">官网/主管部门 ↗</a>` : "<p>官网待核实</p>"}<p>${esc(v.wechatName || "公众号账号待核实")}</p>${v.wechatUrl ? `<a href="${esc(v.wechatUrl)}" target="_blank" rel="noopener noreferrer">公众号来源 ↗</a>` : ""}</div><div class="card-actions"><button class="primary" data-add="${esc(v.id)}" aria-pressed="${!!(trip?.selections?.includes(v.id) || draftSelection.some((x) => x.id === v.id))}">${trip?.selections?.includes(v.id) || draftSelection.some((x) => x.id === v.id) ? "✓ 已加入 · 点击移出" : "加入本次清单"}</button><button class="outline" data-advice="${esc(v.id)}">请 Agent 核实</button></div>`;
   $("#detail").showModal();
 }
 function prompt(extra = "") {
@@ -574,7 +676,7 @@ function prompt(extra = "") {
     `旅行：${t.title}；tripId：${t.id}；inputRevision：${t.revision}`,
     `工作区：${t.settings.folder}；先读CONTEXT.md。`,
     `目的地：${t.settings.destination || $("#city").value}；日期：${t.settings.date || "待定"}；交通：${t.settings.mode}`,
-    "按Day N规划，不需要出发时刻。每馆4小时基本参观，6–8小时深度参观，不安排1–2小时打卡。以下顺序由用户安排，优化先提建议，不直接覆盖。",
+    "按Day N规划，不需要出发时刻。餐饮/景点/Citywalk按各自类型分配合理停留时间。每馆4小时基本参观，6–8小时深度参观，不安排1–2小时打卡。以下顺序由用户安排，优化先提建议，不直接覆盖。",
     ...(trip.stops.length ? selectedVenues() : collectedVenues()).map(
       (v, i) =>
         `${i + 1}. ${v.day ? "Day " + v.day : "待编排"} ${v.name}；馆址ID=${v.id}；机构ID=${v.museumId}；${v.address}；坐标${v.longitude},${v.latitude}（${v.crs}）；${v.minutes ? "计划" + v.minutes + "分钟" : "尚未安排时长"}；来源${v.sourceUrl}`,
@@ -626,17 +728,39 @@ function updateSelection(update) {
   return run;
 }
 async function add(id) {
+  const staged = draftSelection.some((v) => v.id === id);
+  if (staged) {
+    draftSelection = draftSelection.filter((v) => v.id !== id);
+    if (draftSelection.length)
+      localStorage.setItem(
+        "find-museum-unassigned",
+        JSON.stringify(draftSelection),
+      );
+    else localStorage.removeItem("find-museum-unassigned");
+    if (!trip?.selections?.includes(id)) {
+      refresh();
+      toast("已移出暂存清单");
+      if ($("#detail").open) await detail(id);
+      return;
+    }
+  }
   if (!trip) {
-    toast("先新建旅行，再收集博物馆");
-    newTrip();
-    return;
+    const v = boot.venues.find((v) => v.id === id);
+    if (!v) throw new Error("地点不存在，请重新检索");
+    stagePlaces([v]);
+  } else {
+    let removed = false;
+    await updateSelection((ids) => {
+      removed = ids.includes(id);
+      return removed ? ids.filter((x) => x !== id) : [...ids, id];
+    });
+    toast(
+      removed
+        ? "已移出本次清单，关联的Day N编排同步移除"
+        : "已加入清单；收集好后再排序安排",
+    );
   }
-  if (trip.selections?.includes(id)) {
-    toast("已加入清单，可继续收集或到第二步编排");
-    return;
-  }
-  await updateSelection((ids) => [...ids, id]);
-  toast("已加入清单，不分配时间或天数；收集好后再排序安排");
+  if ($("#detail").open) await detail(id);
 }
 
 async function favorite(id, patch) {
@@ -686,6 +810,7 @@ function saveRoadbook() {
         }),
       });
       boot.artifacts = r.artifacts;
+      boot.roadbooks = r.roadbooks || boot.roadbooks;
       showTab("results");
       toast("路书已保存到旅行output目录");
     },
@@ -703,13 +828,25 @@ async function exportTrip(format) {
   a.href = r.downloadUrl;
   a.download = "";
   a.click();
-  toast("真实文件已保存到output，并登记到路书与结果");
+  toast("真实文件已保存到output，并登记到路书档案");
 }
-function durationOptions(minutes) {
-  return [240, 360, 480]
+function durationOptions(minutes, kind = "museum") {
+  return [
+    ...new Set([
+      ...(kind === "food"
+        ? [30, 60, 90, 120]
+        : kind === "citywalk"
+          ? [30, 60, 120, 180]
+          : kind === "attraction"
+            ? [60, 120, 180, 240]
+            : [240, 360, 480]),
+      ...(minutes ? [minutes] : []),
+    ]),
+  ]
+    .sort((a, b) => a - b)
     .map(
       (n) =>
-        `<option value="${n}" ${n === minutes ? "selected" : ""}>${n / 60}小时 · ${n === 240 ? "基本参观" : "深度参观"}</option>`,
+        `<option value="${n}" ${n === minutes ? "selected" : ""}>${n % 60 === 0 ? n / 60 + "小时" : n + "分钟"}${kind === "museum" ? " · " + (n === 240 ? "基本参观" : "深度参观") : " · 规划停留"}</option>`,
     )
     .join("");
 }
@@ -748,9 +885,9 @@ async function searchOnline(
     async (f) => {
       const selected = f.getAll("poi").map((i) => pois[Number(i)]);
       if (!selected.length) throw new Error("请至少选择一处馆址");
-      const t = needTrip(),
-        tripId = t.id,
-        revision = t.revision;
+      const t = trip,
+        tripId = t?.id,
+        revision = t?.revision;
       const rows = [];
       for (const poi of selected) {
         const response = await api("/amap", {
@@ -798,6 +935,10 @@ async function searchOnline(
           ...(old ? {} : { themes: [], intro: "", county: false }),
         });
       }
+      if (!t) {
+        stagePlaces(rows);
+        return;
+      }
       if (trip?.id !== tripId || trip.revision !== revision)
         throw new Error("旅行已变化，请重新检索和安排");
       const r = await api("/selection-import", {
@@ -808,7 +949,7 @@ async function searchOnline(
       boot.candidates = r.candidates;
       trip = r.trip;
       refresh();
-      toast("已加入博物馆清单。可继续搜索，或到“我的路线”排序和安排Day N。");
+      toast("已加入博物馆清单。可继续搜索，或到“设计路书”排序和安排Day N。");
     },
   );
 }
@@ -819,7 +960,7 @@ function openPlanner(newVenues = []) {
   const all = new Map([...boot.venues, ...newVenues].map((v) => [v.id, v])),
     stops = t.stops.map((s) => ({
       ...s,
-      minutes: Math.max(240, Math.min(480, s.minutes)),
+      minutes: s.minutes,
     }));
   for (const v of [...collectedVenues(), ...newVenues])
     if (!stops.some((s) => s.id === v.id)) {
@@ -830,8 +971,13 @@ function openPlanner(newVenues = []) {
           .reduce((n, s) => n + s.minutes, 0);
       stops.push({
         id: v.id,
-        day: Math.min(30, dayMinutes + 240 > 480 ? day + 1 : day),
-        minutes: 240,
+        day: Math.min(
+          30,
+          dayMinutes + (v.kind && v.kind !== "museum" ? 60 : 240) > 480
+            ? day + 1
+            : day,
+        ),
+        minutes: v.kind && v.kind !== "museum" ? 60 : 240,
       });
     }
   planDraft = {
@@ -843,7 +989,7 @@ function openPlanner(newVenues = []) {
   };
   dialog(
     "② 排顺序，安排 Day N",
-    '<p class="micro">拖住一行调整顺序，也可用上下箭头。每馆4小时基本参观，6–8小时深度参观。日程只按Day N安排；下方统计不含交通和用餐。</p><div id="plan-list"></div><div id="plan-summary" class="plan-summary"></div><button type="submit" class="primary">确认加入并保存路线</button>',
+    '<p class="micro">拖住一行调整顺序，也可用上下箭头。每馆4小时基本参观，6–8小时深度参观。日程只按Day N安排；下方统计不含未安排的交通和用餐。</p><div id="plan-list"></div><div id="plan-summary" class="plan-summary"></div><button type="submit" class="primary">确认加入并保存路线</button>',
     async () => {
       const p = planDraft;
       if (!p || trip?.id !== p.tripId || trip.revision !== p.revision)
@@ -891,7 +1037,7 @@ function renderPlan() {
         )
         .join(
           "",
-        )}</select></label><label>参观<select data-plan-minutes="${esc(s.id)}">${durationOptions(s.minutes)}</select></label></div></div><div class="plan-controls"><button type="button" class="quiet" data-plan-move="${esc(s.id)}" data-delta="-1" aria-label="上移${esc(v.name)}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="quiet" data-plan-move="${esc(s.id)}" data-delta="1" aria-label="下移${esc(v.name)}" ${i === p.stops.length - 1 ? "disabled" : ""}>↓</button></div></article>`;
+        )}</select></label><label>参观<select data-plan-minutes="${esc(s.id)}">${durationOptions(s.minutes, v.kind)}</select></label></div></div><div class="plan-controls"><button type="button" class="quiet" data-plan-move="${esc(s.id)}" data-delta="-1" aria-label="上移${esc(v.name)}" ${i === 0 ? "disabled" : ""}>↑</button><button type="button" class="quiet" data-plan-move="${esc(s.id)}" data-delta="1" aria-label="下移${esc(v.name)}" ${i === p.stops.length - 1 ? "disabled" : ""}>↓</button></div></article>`;
     })
     .join("");
   renderPlanSummary();
@@ -1051,7 +1197,16 @@ document.addEventListener(
     if (!b) return;
     const d = b.dataset;
     if (d.tab) showTab(d.tab);
-    if (d.go) showTab(d.go);
+    if (d.go) {
+      if (d.go === "route" && draftSelection.length) {
+        if (!trip) {
+          newTrip();
+          return;
+        }
+        await commitDraftSelection();
+      }
+      showTab(d.go);
+    }
     if (d.filter) {
       filter = d.filter;
       page = 1;
@@ -1062,6 +1217,25 @@ document.addEventListener(
     }
     if (d.close) document.getElementById(d.close).close();
     if (d.detail) await detail(d.detail);
+    if (d.recommend) await recommendPlaces(d.recommend);
+    if (d.archiveOpen) openRoadbook(d.archiveOpen);
+    if (d.archiveDownload)
+      await downloadArchive(d.archiveDownload, d.format, d.share === "true");
+    if (d.archiveAgent) await archiveAgent(d.archiveAgent);
+    if (d.archiveContinue) await continueArchive(d.archiveContinue);
+    if (d.archiveCopy) await copyArchive(d.archiveCopy);
+    if (d.artifactPreview) await previewArtifact(d.artifactPreview);
+    if (d.artifactConfirm) {
+      const r = await api("/artifacts", {
+        method: "PUT",
+        body: JSON.stringify({ id: d.artifactConfirm }),
+      });
+      boot.artifacts = r.artifacts;
+      openRoadbook(
+        r.artifacts.find((a) => a.id === d.artifactConfirm).payload.roadbookId,
+      );
+      toast("内容已标为用户确认");
+    }
     if (d.uncollect)
       await updateSelection((ids) => ids.filter((id) => id !== d.uncollect));
     if (d.add) await add(d.add);
@@ -1113,6 +1287,257 @@ document.addEventListener(
     }
   }),
 );
+
+function renderRoadbookList() {
+  $("#roadbook-list").innerHTML =
+    (boot.roadbooks || [])
+      .filter(
+        (a) =>
+          !$("#archive-city").value.trim() ||
+          (a.snapshot.destination || "").includes(
+            $("#archive-city").value.trim(),
+          ),
+      )
+      .filter(
+        (a) =>
+          !$("#archive-status").value ||
+          a.snapshot.status === $("#archive-status").value,
+      )
+      .filter(
+        (a) => $("#archive-scope").value === "all" || a.trip_id === trip?.id,
+      )
+      .map(
+        (a) =>
+          `<article class="artifact-row"><h3>${esc(a.snapshot.title)}</h3><p>${esc(a.snapshot.destination || "目的地待定")} · 第 ${a.version} 版 · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${(a.snapshot.stops.length ? a.snapshot.stops : a.snapshot.selections).length}处</p><small>${esc(a.created_at)}</small><button class="outline" data-archive-open="${esc(a.id)}">浏览路书 →</button></article>`,
+      )
+      .join("") ||
+    '<p class="empty">设计好清单或 Day N 后，保存一版路书，随时回顾。</p>';
+}
+function archiveById(id) {
+  const a = boot.roadbooks?.find((a) => a.id === id);
+  if (!a) throw new Error("路书不存在，请重新读取");
+  return a;
+}
+function openRoadbook(id) {
+  const a = archiveById(id);
+  $("#detail-content").innerHTML =
+    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText(a.snapshot))}</div><div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-continue="${esc(id)}">继续设计</button></div><details><summary>附件与 Agent 完善结果</summary>${
+      (boot.artifacts || [])
+        .filter(
+          (x) => x.payload.roadbookId === id && x.kind !== "roadbook-snapshot",
+        )
+        .map(
+          (x) =>
+            `<p>${esc(x.payload.title)} · ${esc(x.payload.format)}${x.kind === "agent-roadbook" ? " · " + (x.payload.status === "confirmed" ? "已确认" : "待确认") : ""}<button class="quiet" data-artifact-preview="${esc(x.id)}">浏览</button><a href="/api/find-museum/file?id=${encodeURIComponent(x.id)}" download>下载</a>${x.kind === "agent-roadbook" && x.payload.status !== "confirmed" ? `<button class="outline" data-artifact-confirm="${esc(x.id)}">确认内容</button>` : ""}</p>`,
+        )
+        .join("") || "<p>暂无附件；可下载分享版，或保存Agent完善后的内容。</p>"
+    }</details><details open><summary>下载与分享给旅伴</summary><p class="micro">分享版仅含公开地点、Day N 和来源。下载后可自行发给旅伴，不生成本机分享链接。</p><div class="archive-actions">${["html", "md", "csv", "json"].map((f) => `<button class="outline" data-archive-download="${esc(id)}" data-format="${f}" data-share="true">下载 ${f.toUpperCase()}</button>`).join("")}<button class="quiet" data-archive-copy="${esc(id)}">复制行程摘要</button></div></details>`;
+  if (!$("#detail").open) $("#detail").showModal();
+}
+async function archivePlan() {
+  await pendingWrites;
+  const t = needTrip();
+  const r = await api("/roadbooks", {
+    method: "POST",
+    body: JSON.stringify({ tripId: t.id, revision: t.revision }),
+  });
+  boot.roadbooks = r.roadbooks;
+  boot.artifacts = r.artifacts;
+  showTab("results");
+  openRoadbook(r.roadbook.id);
+  toast(r.warning || "路书已存档；继续设计将保留这一版");
+}
+async function downloadArchive(id, format, share) {
+  const a = archiveById(id),
+    r = await api("/export", {
+      method: "POST",
+      body: JSON.stringify({ roadbookId: a.id, format, share }),
+    });
+  boot.artifacts = r.artifacts;
+  const link = document.createElement("a");
+  link.href = r.downloadUrl;
+  link.download = a.snapshot.title + "." + format;
+  link.click();
+  renderResults();
+  toast("文件已生成，可在档案中回顾");
+}
+async function archiveAgent(id) {
+  const a = archiveById(id);
+  const frozen = roadbookText(a.snapshot);
+  $("#detail").close();
+  if (trip?.id !== a.trip_id) await openTrip(a.trip_id);
+  const p = `请协助完善下面这份已存档路书（第${a.version}版，输入revision ${a.input_revision}）。这是冻结快照，请勿用当前草稿替换；更新建议先请我确认。每个博物馆4–8小时，其他地点独立安排。请核实开放、预约、交通和特色，保留真实来源和日期；未知信息不要编造。结果可以保存到工作区output，再通过工作台“保存Agent路书”登记。\n\n${frozen}`;
+  if (isEmbedded) {
+    await ensureSession();
+    await bridge("draft", { tripId: a.trip_id, prompt: p });
+    toast("已追加原生草稿，请确认后发送");
+  } else
+    dialog(
+      "Agent提示词预览",
+      `<textarea readonly>${esc(p)}</textarea><button type="submit" class="primary">关闭</button>`,
+      async () => {},
+    );
+}
+async function copyArchive(id) {
+  const value = roadbookText(publicSnapshot(archiveById(id).snapshot));
+  try {
+    await navigator.clipboard.writeText(value);
+    toast("已复制，分享前可自行检查");
+  } catch {
+    dialog(
+      "选择并复制行程摘要",
+      `<textarea readonly>${esc(value)}</textarea><button type="submit" class="primary">关闭</button>`,
+      async () => {},
+    );
+  }
+}
+async function continueArchive(id) {
+  const a = archiveById(id);
+  $("#detail").close();
+  if (trip?.id !== a.trip_id) await openTrip(a.trip_id);
+  dialog(
+    "从此版本继续设计",
+    '<p>将用所选版本恢复此旅行的设计草稿。旧路书版本保留；尚未存档的草稿请先保存。</p><button type="submit" class="primary">恢复草稿并继续</button>',
+    async () => {
+      const r = await api("/roadbooks", {
+        method: "PUT",
+        body: JSON.stringify({ id: a.id, revision: trip.revision }),
+      });
+      trip = r.trip;
+      showTab("route");
+      toast("草稿已恢复，旧档案保持不变");
+    },
+  );
+}
+async function previewArtifact(id) {
+  const a = boot.artifacts.find((x) => x.id === id),
+    r = await fetch("/api/find-museum/file?id=" + encodeURIComponent(id));
+  if (!r.ok) throw new Error("文件未找到或无法读取；档案索引仍保留");
+  const content = await r.text();
+  $("#detail-content").innerHTML =
+    `<div class="dialog-head"><h2>${esc(a.payload.title || "结果文件")}</h2><button class="quiet" data-close="detail">关闭 ×</button></div>` +
+    (a.payload.format === "html"
+      ? `<iframe title="受限HTML预览" sandbox srcdoc="${esc(content)}" style="width:100%;height:55vh;border:0"></iframe>`
+      : `<pre class="roadbook-preview">${esc(content)}</pre>`);
+  if (!$("#detail").open) $("#detail").showModal();
+}
+const recommendationTags = [
+  "特色小吃",
+  "本地餐馆",
+  "老字号",
+  "周边景点",
+  "Citywalk",
+];
+$("#recommend-tags").innerHTML = recommendationTags
+  .map((t) => `<button class="chip" data-recommend="${t}">${t} ↗</button>`)
+  .join("");
+async function savePlaces(places, alsoTrip = false) {
+  if (!boot.configured) await configureRoot();
+  if (!boot.configured)
+    throw new Error("未选择目录，尚未保存；可重新选择目录后操作");
+  const current = trip;
+  const r = await api("/places", {
+    method: "POST",
+    body: JSON.stringify({
+      places,
+      ...(alsoTrip ? { tripId: needTrip().id, revision: trip.revision } : {}),
+    }),
+  });
+  boot.venues = r.venues;
+  boot.favorites = r.favorites;
+  if (r.trip && trip?.id === current?.id) trip = r.trip;
+  refresh();
+  toast(
+    `新增 ${r.createdCount} 处收藏，${r.existingCount} 处已存在并保留笔记` +
+      (alsoTrip ? "；已加入当前清单" : ""),
+  );
+}
+async function recommendPlaces(tag) {
+  const city = trip?.settings.destination || $("#city").value.trim();
+  const requestTripId = trip?.id,
+    requestRevision = trip?.revision;
+  let recommendationCenter = null;
+  if (trip?.settings.center) recommendationCenter = trip.settings.center;
+  else {
+    const g = await api("/amap", {
+      method: "POST",
+      body: JSON.stringify({ action: "geo", params: { address: city, city } }),
+    });
+    const point = g.geocodes?.[0]?.location?.split(",").map(Number);
+    recommendationCenter = point
+      ? { longitude: point[0], latitude: point[1], crs: "GCJ-02" }
+      : null;
+  }
+  toast("正在检索 " + city + " · " + tag);
+  const r = await api("/recommendations", {
+    method: "POST",
+    body: JSON.stringify({ tag, city, center: recommendationCenter }),
+  });
+  searchSelection = "multi";
+  dialog(
+    city + " · " + tag,
+    `<p class="micro">${esc(r.note)}${r.radius ? ` · 半径 ${r.radius / 1000}km` : ""} · ${esc(r.checkedAt)}。当前有${r.places.length}条候选${r.places.length < 3 ? "，未凑数" : ""}；不代表大众点评榜单。${tag === "Citywalk" ? "这里只推荐地点，步行线路需另行核实。" : ""}</p><div class="selection-toolbar"><button type="button" class="outline" data-select-mode="single">单选</button><button type="button" class="outline" data-select-mode="multi">多选</button><button type="button" class="quiet" data-select-all>全选</button><button type="button" class="quiet" data-select-clear>清空</button><span id="selection-count">已选0处</span></div>` +
+      r.places
+        .map(
+          (v, i) =>
+            `<label class="poi-option"><input type="checkbox" name="poi" value="${i}"><span><strong>${esc(v.name)}</strong><small>${esc(v.address)}</small><small>${v.rating ? "高德评分 " + esc(v.rating.value) + (v.rating.scale ? " / " + esc(v.rating.scale) : "（平台原始值）") : "评分未提供"}${v.cost ? " · 高德人均 " + esc(v.cost) + "元" : ""}</small><a href="${esc(v.sourceUrl)}" target="_blank" rel="noopener noreferrer">高德详情/地图 ↗</a></span></label>`,
+        )
+        .join("") +
+      `<label><input type="checkbox" name="alsoTrip" ${trip ? "" : "disabled"}>同时加入当前旅行清单${trip ? "" : "（请先新建旅行）"}</label><button class="primary" type="submit" ${r.places.length ? "" : "disabled"}>保存勾选到我的收藏</button>`,
+    async (f) => {
+      if (
+        f.has("alsoTrip") &&
+        (trip?.id !== requestTripId || trip?.revision !== requestRevision)
+      )
+        throw new Error("旅行已变化，请重新推荐后添加");
+      const places = f.getAll("poi").map((i) => r.places[Number(i)]);
+      if (!places.length) throw new Error("请先勾选地点");
+      await savePlaces(places, f.has("alsoTrip"));
+    },
+  );
+}
+function manualPlace() {
+  dialog(
+    "添加旅行地点",
+    '<label>名称<input name="name" required maxlength="160"></label><label>类别<select name="kind"><option value="museum">博物馆</option><option value="food">美食</option><option value="attraction">景点</option><option value="citywalk">Citywalk</option></select></label><label>城市<input name="city"></label><label>地址<input name="address"></label><label>公开来源链接（可选）<input type="url" name="source"></label><p class="micro">未定位地点可收藏与编排，暂不参加地图、距离和道路计算。</p><button type="submit" class="primary">保存到我的收藏</button>',
+    async (f) =>
+      savePlaces([
+        {
+          id: "manual-" + crypto.randomUUID(),
+          name: f.get("name"),
+          kind: f.get("kind"),
+          city: f.get("city"),
+          address: f.get("address"),
+          sourceUrl: f.get("source") || "",
+          provider: "manual",
+          unlocated: true,
+          openingStatus: "unknown",
+          checkedAt: new Date().toISOString(),
+        },
+      ]),
+  );
+}
+$("#supplement-places").onclick = () =>
+  dialog(
+    "补充沿途地点",
+    '<p>以当前目的地和中心检索，候选由你勾选。保存时可同时加入当前清单。</p><div class="filters">' +
+      recommendationTags
+        .map(
+          (t) =>
+            `<button type="button" class="chip" data-recommend="${t}">${t} ↗</button>`,
+        )
+        .join("") +
+      "</div>",
+    async () => {},
+  );
+$("#manual-place").onclick = safe(manualPlace);
+$("#archive-plan").onclick = safe(archivePlan);
+$("#mobile-page").onchange = (e) => showTab(e.target.value);
+$("#favorite-kind").onchange = renderFavorites;
+$("#favorite-status").onchange = renderFavorites;
+$("#archive-scope").onchange = renderResults;
+$("#archive-city").oninput = renderRoadbookList;
+$("#archive-status").onchange = renderRoadbookList;
 $("#edit-route-plan").onclick = safe(() => openPlanner());
 $("#new-trip").onclick = newTrip;
 $("#choose-root").onclick = safe(configureRoot);
@@ -1246,5 +1671,6 @@ $("#check-amap").onclick = safe(async () => {
       "连接正常 · 地理编码可用；其他服务仍受各自权限与配额限制";
   } catch (e) {
     $("#map-config-status").textContent = "连接未成功：" + e.message;
+    $("#map-settings").open = true;
   }
 });

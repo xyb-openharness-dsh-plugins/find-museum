@@ -11,6 +11,11 @@ import { join, resolve, dirname, extname, isAbsolute } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import {
+  roadbookText,
+  roadbookHtml,
+  publicSnapshot,
+} from "./domain/roadbook.mjs";
 import { Catalog } from "./data/catalog.mjs";
 import { serveMap, amapConfigured, saveAmapKey, amapQuery } from "./maps.mjs";
 import { TripStore, RevisionConflict } from "./data/trip-store.mjs";
@@ -30,6 +35,7 @@ const assets = {
   "/workbench/find-museum/app.js": "public/app.js",
   "/workbench/find-museum/app.css": "public/app.css",
   "/workbench/find-museum/map.mjs": "public/map.mjs",
+  "/workbench/find-museum/roadbook.mjs": "public/roadbook.mjs",
   "/workbench/find-museum/route.mjs": "public/route.mjs",
   "/workbench/find-museum/vendor/leaflet.js": "public/vendor/leaflet.js",
   "/workbench/find-museum/vendor/leaflet.css": "public/vendor/leaflet.css",
@@ -55,7 +61,9 @@ export const routes = [
     "artifacts",
     "session-projects",
     "settings",
-    "catalog.csv",
+    "places",
+    "recommendations",
+    "roadbooks",
     "plan-import",
     "selection",
     "selection-import",
@@ -128,8 +136,11 @@ const settings = (s = {}) => ({
 });
 function validateVenue(v) {
   if (!v || typeof v !== "object") fail("馆址对象无效");
-  coordinate(v);
-  if (v.crs !== "GCJ-02")
+  const kind = v.kind || "museum";
+  if (!["museum", "food", "attraction", "citywalk"].includes(kind))
+    fail("地点类别无效");
+  if (!v.unlocated) coordinate(v);
+  if (!v.unlocated && v.crs !== "GCJ-02")
     fail("当前地图仅接受GCJ-02馆址；请先使用高德核实坐标");
   if (
     !["unknown", "open", "closed", "partial", "seasonal"].includes(
@@ -137,12 +148,34 @@ function validateVenue(v) {
     )
   )
     fail("开放状态需为unknown/open/closed/partial/seasonal");
-  if (!text(v.name, 160) || !text(v.address, 400) || !v.sourceUrl)
+  if (
+    !text(v.name, 160) ||
+    (!v.unlocated && !text(v.address, 400)) ||
+    (!v.sourceUrl && !(v.unlocated && v.provider === "manual"))
+  )
     fail("名称、地址和来源必填");
   const id = text(v.id, 100) || "research-" + randomUUID();
   if (!/^[a-zA-Z0-9._-]+$/.test(id)) fail("馆址ID格式错误");
   const result = {
     id,
+    kind,
+    unlocated: !!v.unlocated,
+    provider: text(v.provider, 40),
+    providerPoiId: text(v.providerPoiId, 100),
+    rating:
+      v.rating &&
+      v.rating.provider === "amap" &&
+      Number.isFinite(v.rating.value) &&
+      v.rating.value >= 0 &&
+      v.rating.value <= 100
+        ? {
+            provider: "amap",
+            value: v.rating.value,
+            scale: null,
+            checkedAt: text(v.rating.checkedAt, 40),
+          }
+        : null,
+    cost: text(v.cost, 40),
     name: text(v.name, 160),
     museumId: text(v.museumId, 100) || id,
     city: text(v.city, 80),
@@ -195,7 +228,7 @@ function validateVenue(v) {
     fail("公告结束日期不能早于开始日期");
   return result;
 }
-export function createService() {
+export function createService({ amap = amapQuery } = {}) {
   const catalog = new Catalog();
   let store = null,
     dataRoot = "",
@@ -338,7 +371,7 @@ export function createService() {
         const p = await payload(req);
         if (!["geo", "search", "detail"].includes(p.action))
           fail("不支持的地图操作");
-        return json(res, 200, await amapQuery(p.action, p.params));
+        return json(res, 200, await amap(p.action, p.params));
       }
       if (path === PREFIX + "/driving" && req.method === "POST") {
         const p = await payload(req),
@@ -352,7 +385,7 @@ export function createService() {
           if (t.stops[i - 1].day !== t.stops[i].day) continue;
           if (a.crs !== "GCJ-02" || b.crs !== "GCJ-02")
             fail("驾车核算需要高德GCJ-02坐标");
-          const result = await amapQuery("driving", {
+          const result = await amap("driving", {
             origin: `${a.longitude},${a.latitude}`,
             destination: `${b.longitude},${b.latitude}`,
           });
@@ -406,6 +439,7 @@ export function createService() {
           favorites: store?.favorites() || [],
           bindings: sessionBindings,
           artifacts: store?.artifacts() || [],
+          roadbooks: store?.roadbooks() || [],
           candidates: store?.candidates() || [],
           settings: {
             mapProvider: "amap-static",
@@ -413,19 +447,6 @@ export function createService() {
             agentTools: "由原生会话提供；运行时可用性由宿主决定",
           },
         });
-      if (path === PREFIX + "/catalog.csv" && req.method === "GET") {
-        const body = await readFile(
-          join(ROOT, "data/processed/museums-national.csv"),
-        );
-        res.writeHead(200, {
-          "content-type": "text/csv; charset=utf-8",
-          "content-disposition":
-            'attachment; filename="museums-national-2019.csv"',
-          "x-content-type-options": "nosniff",
-        });
-        res.end(body);
-        return;
-      }
       if (path === PREFIX + "/catalog" && req.method === "GET") {
         const page = Math.max(
           1,
@@ -450,6 +471,277 @@ export function createService() {
         return m
           ? json(res, 200, m)
           : json(res, 404, { error: "名录记录不存在" });
+      }
+      if (path === PREFIX + "/recommendations" && req.method === "POST") {
+        const p = await payload(req);
+        const tags = {
+          特色小吃: ["food", "小吃"],
+          本地餐馆: ["food", "本地菜"],
+          老字号: ["food", "老字号"],
+          周边景点: ["attraction", "景点"],
+          Citywalk: ["citywalk", "历史街区"],
+        };
+        if (!tags[p.tag]) fail("推荐标签无效");
+        const [kind, keywords] = tags[p.tag],
+          city = text(p.city, 80);
+        if (!city) fail("请先在发现页选择目的地城市");
+        let point = p.center ? coordinate(p.center) : null;
+        if (point?.crs !== "GCJ-02") point = null;
+        const radius = kind === "food" && p.tag === "本地餐馆" ? 5000 : 3000;
+        const cacheKey = JSON.stringify([
+          city,
+          p.tag,
+          point?.longitude,
+          point?.latitude,
+          radius,
+        ]);
+        const cached = store?.db
+          .prepare("SELECT * FROM recommendation_cache WHERE cache_key=?")
+          .get(cacheKey);
+        if (
+          cached &&
+          Date.now() - Date.parse(cached.created_at) < 1800000 &&
+          !p.refresh
+        )
+          return json(res, 200, {
+            ...JSON.parse(cached.payload),
+            cached: true,
+          });
+        const r = await amap(point ? "around" : "search", {
+          kind,
+          keywords,
+          city,
+          location: point ? `${point.longitude},${point.latitude}` : undefined,
+          radius,
+        });
+        const checkedAt = new Date().toISOString();
+        const places = (r.pois || [])
+          .filter(
+            (v) =>
+              v.location &&
+              !(kind === "citywalk" && v.typecode?.startsWith("1401")) &&
+              typeof v.name === "string" &&
+              !/停车|入口|出口|办公室/.test(v.name),
+          )
+          .slice(0, 5)
+          .map((v) => {
+            const [longitude, latitude] = v.location.split(",").map(Number);
+            const ratingValue = Number(v.biz_ext?.rating),
+              rating =
+                typeof v.biz_ext?.rating === "string" &&
+                v.biz_ext.rating.trim() &&
+                Number.isFinite(ratingValue) &&
+                ratingValue > 0 &&
+                ratingValue <= 100
+                  ? {
+                      provider: "amap",
+                      value: ratingValue,
+                      scale: null,
+                      checkedAt,
+                    }
+                  : null;
+            return validateVenue({
+              id: "amap-" + v.id,
+              provider: "amap",
+              providerPoiId: v.id,
+              kind,
+              name: v.name,
+              city: v.cityname || city,
+              province: v.pname,
+              district: v.adname,
+              address: [
+                v.pname,
+                v.cityname,
+                v.adname,
+                typeof v.address === "string" ? v.address : "",
+              ]
+                .filter(Boolean)
+                .join(""),
+              longitude,
+              latitude,
+              crs: "GCJ-02",
+              openingStatus: "unknown",
+              openingHours:
+                typeof v.business?.opentime_today === "string"
+                  ? v.business.opentime_today
+                  : "",
+              checkedAt,
+              sourceUrl:
+                "https://uri.amap.com/marker?position=" +
+                v.location +
+                "&name=" +
+                encodeURIComponent(v.name),
+              rating,
+              cost: typeof v.biz_ext?.cost === "string" ? v.biz_ext.cost : "",
+              themes: [p.tag],
+              intro: typeof v.tag === "string" ? v.tag : "",
+            });
+          });
+        const result = {
+          places,
+          city,
+          tag: p.tag,
+          radius: point ? radius : null,
+          center: point,
+          checkedAt,
+          source: "amap",
+          note: point
+            ? "按中心周边检索；评分与营业信息以实际返回为准"
+            : "按目的地城市检索；尚无周边距离约束",
+        };
+        if (store)
+          store.db
+            .prepare(
+              "INSERT INTO recommendation_cache VALUES(?,?,?) ON CONFLICT(cache_key) DO UPDATE SET payload=excluded.payload,created_at=excluded.created_at",
+            )
+            .run(cacheKey, JSON.stringify(result), checkedAt);
+        return json(res, 200, result);
+      }
+      if (path === PREFIX + "/places" && req.method === "POST") {
+        requireStore();
+        const p = await payload(req);
+        if (
+          !Array.isArray(p.places) ||
+          !p.places.length ||
+          p.places.length > 30
+        )
+          fail("请选择1到30个地点");
+        const current = new Map(venues().map((v) => [v.id, v]));
+        const places = p.places.map((v) =>
+          validateVenue({
+            ...current.get(v.id),
+            ...v,
+            ...(current.has(v.id)
+              ? { kind: current.get(v.id).kind || "museum" }
+              : {}),
+          }),
+        );
+        if (new Set(places.map((v) => v.id)).size !== places.length)
+          fail("地点重复");
+        const oldFavorites = new Set(store.favorites().map((f) => f.id));
+        let target;
+        if (p.tripId) {
+          target = trip(p.tripId);
+          if (target.revision !== p.revision) throw new RevisionConflict();
+        }
+        store.db.exec("BEGIN IMMEDIATE");
+        try {
+          store.savePlaces(places);
+          for (const v of places)
+            if (!store.favorites().some((f) => f.id === v.id))
+              store.putFavorite(v.id, { note: "", visited: false });
+          if (target)
+            store.saveSelection(
+              target,
+              [...new Set([...target.selections, ...places.map((v) => v.id)])],
+              { transaction: false },
+            );
+          store.db.exec("COMMIT");
+        } catch (e) {
+          store.db.exec("ROLLBACK");
+          throw e;
+        }
+        return json(res, 201, {
+          venues: venues(),
+          favorites: store.favorites(),
+          trip: target ? store.get(target.id) : null,
+          createdCount: places.filter((v) => !oldFavorites.has(v.id)).length,
+          existingCount: places.filter((v) => oldFavorites.has(v.id)).length,
+        });
+      }
+      if (path === PREFIX + "/roadbooks" && req.method === "GET")
+        return json(res, 200, { roadbooks: requireStore().roadbooks() });
+      if (path === PREFIX + "/roadbooks" && req.method === "PUT") {
+        const p = await payload(req),
+          a = requireStore()
+            .roadbooks()
+            .find((a) => a.id === p.id);
+        if (!a) fail("档案不存在", 404);
+        const t = trip(a.trip_id);
+        if (t.revision !== p.revision) throw new RevisionConflict();
+        const old = a.snapshot,
+          all = new Map(venues().map((v) => [v.id, v]));
+        if ([...old.selections, ...old.stops].some((v) => !all.has(v.id)))
+          fail("部分地点资料缺失，请先恢复地点");
+        store.db.exec("BEGIN IMMEDIATE");
+        let saved;
+        try {
+          const next = store.saveSelection(
+            t,
+            [...new Set([...old.selections, ...old.stops].map((v) => v.id))],
+            { transaction: false },
+          );
+          saved = store.save(
+            t.id,
+            {
+              title: old.title,
+              settings: {
+                ...t.settings,
+                destination: old.destination,
+                date: old.date,
+                mode: old.mode,
+              },
+              stops: old.stops.map((v) => ({
+                id: v.id,
+                day: v.day,
+                minutes: v.minutes,
+                kind: all.get(v.id).kind || "museum",
+              })),
+            },
+            next.revision,
+            { transaction: false },
+          );
+          store.db.exec("COMMIT");
+        } catch (e) {
+          store.db.exec("ROLLBACK");
+          throw e;
+        }
+        let warning = "";
+        try {
+          await writeContext(saved);
+        } catch (e) {
+          warning = "草稿已保存，快照尚未更新：" + e.message;
+        }
+        return json(res, 200, { trip: saved, warning });
+      }
+      if (path === PREFIX + "/roadbooks" && req.method === "POST") {
+        const p = await payload(req),
+          t = trip(p.tripId);
+        if (t.revision !== p.revision) throw new RevisionConflict();
+        if (!t.selections.length && !t.stops.length) fail("请先添加地点");
+        const r = store.saveRoadbook(t, venues());
+        let warning = "";
+        if (
+          !store
+            .artifacts()
+            .some(
+              (a) =>
+                a.payload.roadbookId === r.id && a.kind === "roadbook-snapshot",
+            )
+        ) {
+          try {
+            const folder = await tripFolder(t);
+            await safeOutput(folder);
+            const rel = "output/roadbook-" + r.id + ".json",
+              content = JSON.stringify(r.snapshot, null, 2);
+            await atomic(join(folder, rel), content);
+            store.addArtifact(t.id, "roadbook-snapshot", rel, {
+              title: t.title,
+              format: "json",
+              roadbookId: r.id,
+              revision: t.revision,
+              sha256: createHash("sha256").update(content).digest("hex"),
+            });
+          } catch (e) {
+            warning = "路书已存入SQLite；输出快照尚未保存：" + e.message;
+          }
+        }
+        return json(res, 201, {
+          roadbook: r,
+          roadbooks: store.roadbooks(),
+          artifacts: store.artifacts(),
+          warning,
+        });
       }
       if (path === PREFIX + "/trips" && req.method === "GET")
         return json(res, 200, { trips: store?.list() || [] });
@@ -483,9 +775,17 @@ export function createService() {
       if (path === PREFIX + "/trip" && req.method === "PUT") {
         const p = await payload(req),
           old = trip(p.id);
+        const kinds = new Map(venues().map((v) => [v.id, v.kind || "museum"]));
+        p.stops = p.stops.map((s) => ({
+          ...s,
+          kind: kinds.get(s.id) || "museum",
+        }));
         validateStops(p.stops);
         const ids = new Set(venues().map((v) => v.id));
         if (p.stops.some((s) => !ids.has(s.id))) fail("路线包含尚未确认的馆址");
+        p.stops = p.stops.map(({ kind, ...s }) =>
+          kind === "museum" ? s : { ...s, kind },
+        );
         const saved = store.save(
           p.id,
           {
@@ -602,6 +902,17 @@ export function createService() {
         );
         const ids = new Set(confirmed.map((v) => v.id));
         if (ids.size !== confirmed.length) fail("馆址重复");
+        const placeKinds = new Map(
+          [...existing.values(), ...confirmed].map((v) => [
+            v.id,
+            v.kind || "museum",
+          ]),
+        );
+        p.stops = p.stops.map(({ kind, ...s }) =>
+          placeKinds.get(s.id) === "museum"
+            ? s
+            : { ...s, kind: placeKinds.get(s.id) },
+        );
         validateStops(p.stops);
         if (p.stops.some((s) => !ids.has(s.id) && !existing.has(s.id)))
           fail("路线包含未知馆址");
@@ -671,6 +982,17 @@ export function createService() {
       }
       if (path === PREFIX + "/artifacts" && req.method === "GET")
         return json(res, 200, { artifacts: requireStore().artifacts() });
+      if (path === PREFIX + "/artifacts" && req.method === "PUT") {
+        const p = await payload(req),
+          a = requireStore()
+            .artifacts()
+            .find((a) => a.id === p.id && a.kind === "agent-roadbook");
+        if (!a) fail("Agent路书不存在", 404);
+        store.db
+          .prepare("UPDATE artifact SET payload=? WHERE id=?")
+          .run(JSON.stringify({ ...a.payload, status: "confirmed" }), a.id);
+        return json(res, 200, { artifacts: store.artifacts() });
+      }
       if (path === PREFIX + "/artifacts" && req.method === "POST") {
         const p = await payload(req),
           t = trip(p.tripId);
@@ -686,84 +1008,59 @@ export function createService() {
         const id = randomUUID(),
           rel = "output/" + id + "." + p.format;
         await atomic(join(folder, rel), p.content);
+        const book = store.saveRoadbook(t, venues());
         store.addArtifact(t.id, "agent-roadbook", rel, {
+          roadbookId: book.id,
+          status: "pending",
           title: text(p.title, 160) || "Agent路书",
           format: p.format,
           revision: t.revision,
           sha256: createHash("sha256").update(p.content).digest("hex"),
         });
-        return json(res, 201, { artifacts: store.artifacts() });
+        return json(res, 201, {
+          artifacts: store.artifacts(),
+          roadbooks: store.roadbooks(),
+        });
       }
       if (path === PREFIX + "/export" && req.method === "POST") {
-        const p = await payload(req),
-          t = trip(p.tripId);
-        if (p.revision !== t.revision) throw new RevisionConflict();
-        if (!t.stops.length) fail("请先加入馆址");
+        const p = await payload(req);
+        const archive = p.roadbookId
+          ? requireStore()
+              .roadbooks()
+              .find((r) => r.id === p.roadbookId)
+          : null;
+        if (p.roadbookId && !archive) fail("路书档案不存在", 404);
+        const t = trip(archive?.trip_id || p.tripId);
+        if (!archive && p.revision !== t.revision) throw new RevisionConflict();
         if (!["md", "csv", "json", "html"].includes(p.format))
           fail("不支持的导出格式");
-        const vv = new Map(venues().map((v) => [v.id, v])),
-          rows = t.stops.map((s, i) => ({
-            ...vv.get(s.id),
-            ...s,
-            position: i + 1,
-          }));
-        const snapshot = {
-          schemaVersion: 1,
-          tripId: t.id,
-          title: t.title,
-          revision: t.revision,
-          settings: t.settings,
-          stops: rows,
-          exportedAt: new Date().toISOString(),
-          baseYear: 2019,
-        };
-        let content;
-        if (p.format === "json") content = JSON.stringify(snapshot, null, 2);
-        else if (p.format === "csv") content = csvText(rows);
-        else {
-          const lines = [
-            "# " + t.title,
-            "",
-            `日期：${t.settings.date || "待定"}；交通：${t.settings.mode}`,
-            "",
-            "> 历史等级不代表当前等级；开放需按出行日复核。直线距离不是道路导航。",
-            "",
-            ...rows.flatMap((v, i) => [
-              `## ${i + 1}. 第${v.day}天 · ${v.name}`,
-              `- 馆址ID：${v.id}`,
-              `- 地址：${v.address}`,
-              `- 坐标：${v.longitude},${v.latitude}（${v.crs}）`,
-              `- 参观规划：${v.minutes}分钟`,
-              `- 常规开放：${v.openingHours || "未知"}`,
-              `- 状态：${v.openingStatus || "unknown"}；有效期：${v.validFrom || "待核实"} 至 ${v.validTo || "待核实"}`,
-              `- 点位来源：${v.sourceUrl}`,
-              `- 介绍：${v.intro || "待补"}`,
-              `- 介绍来源：${v.introSource || v.officialUrl || "待补"}`,
-              "",
-            ]),
-          ];
-          content = lines.join("\n");
-          if (p.format === "html") {
-            const esc = (s) =>
-              s.replace(
-                /[&<>"']/g,
-                (c) =>
-                  ({
-                    "&": "&amp;",
-                    "<": "&lt;",
-                    ">": "&gt;",
-                    '"': "&quot;",
-                    "'": "&#39;",
-                  })[c],
-              );
-            content =
-              '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>' +
-              esc(t.title) +
-              "</title><style>body{max-width:850px;margin:40px auto;padding:0 24px;font:16px/1.8 system-ui;color:#253c37}pre{white-space:pre-wrap}</style><pre>" +
-              esc(content) +
-              "</pre></html>";
-          }
-        }
+        const vv = new Map(venues().map((v) => [v.id, v]));
+        const snapshot = publicSnapshot(
+          archive?.snapshot || {
+            schemaVersion: 2,
+            title: t.title,
+            tripId: t.id,
+            revision: t.revision,
+            destination: t.settings.destination,
+            date: t.settings.date,
+            mode: t.settings.mode,
+            selections: t.selections.map((id) => vv.get(id)).filter(Boolean),
+            stops: t.stops.map((s) => ({ ...vv.get(s.id), ...s })),
+          },
+        );
+        if (!snapshot.stops.length && !snapshot.selections?.length)
+          fail("请先加入地点");
+        const rows = snapshot.stops.length
+          ? snapshot.stops
+          : snapshot.selections;
+        let content =
+          p.format === "json"
+            ? JSON.stringify(snapshot, null, 2)
+            : p.format === "csv"
+              ? csvText(rows)
+              : p.format === "html"
+                ? roadbookHtml(snapshot)
+                : roadbookText(snapshot);
         const folder = await tripFolder(t);
         await safeOutput(folder);
         const rel = "output/" + randomUUID() + "." + p.format;
@@ -772,7 +1069,9 @@ export function createService() {
           id = store.addArtifact(t.id, "route-export", rel, {
             title: t.title,
             format: p.format,
-            revision: t.revision,
+            revision: snapshot.revision,
+            roadbookId: archive?.id || null,
+            share: !!p.share,
             sha256: hash,
           });
         return json(res, 201, {

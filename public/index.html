@@ -47,17 +47,26 @@
           <span class="prototype-badge"><span id="version">连接中</span></span
           ><button class="quiet" id="large-font">大字</button>
         </header>
+        <label class="mobile-nav"
+          >工作台页面<select id="mobile-page">
+            <option value="discover">发现博物馆</option>
+            <option value="route">设计路书</option>
+            <option value="favorites">我的收藏</option>
+            <option value="results">路书档案</option>
+            <option value="data">数据配置</option>
+          </select></label
+        >
         <nav class="tabs" aria-label="工作台页面">
           <button data-tab="discover" class="active">
             <svg><use href="#i-map" /></svg>发现博物馆</button
           ><button data-tab="route">
-            <svg><use href="#i-route" /></svg>我的路线
+            <svg><use href="#i-route" /></svg>设计路书
             <span id="route-count">0</span></button
           ><button data-tab="favorites">
-            <svg><use href="#i-heart" /></svg>我的馆单</button
+            <svg><use href="#i-heart" /></svg>我的收藏</button
           ><button data-tab="results">
-            <svg><use href="#i-book" /></svg>路书与结果</button
-          ><button data-tab="data">数据与配置</button>
+            <svg><use href="#i-book" /></svg>路书档案</button
+          ><button data-tab="data">数据配置</button>
         </nav>
         <ol class="workflow-steps">
           <li>1 · 搜索并建立博物馆清单</li>
@@ -161,7 +170,7 @@
                   <b>把想去的馆，连成自己的路线</b>
                   <p>先收藏兴趣，再决定顺序；不必一次走完。</p>
                 </div>
-                <button class="outline" data-go="route">编辑路线 →</button>
+                <button class="outline" data-go="route">去设计路书 →</button>
               </div>
             </section>
           </div>
@@ -170,17 +179,29 @@
             ><span><span id="coverage">正在读取馆址</span></span>
           </div>
         </section>
+        <div class="discovery-next" id="discovery-next">
+          <span id="discovery-selection">先选几处感兴趣的馆</span
+          ><button
+            class="primary"
+            id="discovery-design"
+            data-go="route"
+            disabled
+          >
+            去设计路书 →
+          </button>
+        </div>
         <section id="route-page" class="page" hidden>
-          <section class="collection-panel">
+          <details class="collection-panel">
+            <summary>本次地点清单</summary>
             <div class="section-heading">
-              <h2>① 博物馆清单</h2>
+              <h2>已收集的地点</h2>
               <span id="selection-total"></span>
             </div>
             <p class="micro">
-              先收集，不分配时长和天数。想去的馆选齐后，再进入第二步排序。
+              先收集，不分配时长和天数。感兴趣的地点选齐后，再进入第二步排序。
             </p>
             <div id="selection-list"></div>
-          </section>
+          </details>
           <div class="panel-head">
             <div>
               <h2>② 排顺序，安排 Day N</h2>
@@ -204,6 +225,7 @@
           <div class="route-toolbar">
             <button class="outline" id="edit-route-plan">
               开始排序 / 调整 Day N</button
+            ><button class="outline" id="supplement-places">补充沿途地点</button
             ><button class="outline" id="open-session">打开原生会话</button
             ><button class="outline" id="calculate-driving">核算驾车路段</button
             ><button class="quiet" id="import-candidates">导入核实结果</button
@@ -218,13 +240,8 @@
             </button>
           </div>
           <div class="exportbar">
+            <button class="primary" id="archive-plan">保存到路书档案 →</button>
             <span id="distance-total"></span>
-            <div>
-              <button class="outline" data-export="md">导出 Markdown</button
-              ><button class="outline" data-export="csv">导出 CSV</button
-              ><button class="quiet" data-export="json">保存规划（JSON）</button
-              ><button class="quiet" data-export="html">HTML</button>
-            </div>
           </div>
           <div class="soft-note">
             出发前再确认一次：闭馆日、临时维修、最后入馆时间、预约余量和展品是否在展。可主动核算高德驾车路段；其他交通请交给
@@ -234,16 +251,37 @@
         <section id="favorites-page" class="page" hidden>
           <div class="panel-head">
             <div>
-              <h2>想去的馆，慢慢积累</h2>
+              <h2>我的收藏</h2>
               <p>收藏、参观记录和笔记保存在你选择的本地资料目录。</p>
             </div>
+          </div>
+          <div class="filters">
+            <label
+              >地点类别<select id="favorite-kind">
+                <option value="">全部</option>
+                <option value="museum">博物馆</option>
+                <option value="food">美食</option>
+                <option value="attraction">景点</option>
+                <option value="citywalk">Citywalk</option>
+              </select></label
+            ><label
+              >状态<select id="favorite-status">
+                <option value="">全部</option>
+                <option value="wish">想去</option>
+                <option value="visited">去过</option>
+              </select></label
+            ><button class="outline" id="manual-place">＋ 手动添加</button>
+          </div>
+          <div class="recommendations">
+            <p>在当前目的地附近，补充旅行的另一面</p>
+            <div class="filters" id="recommend-tags"></div>
           </div>
           <div id="favorites-list"></div>
         </section>
         <section id="results-page" class="page" hidden>
           <div class="panel-head">
             <div>
-              <h2>这次规划留下的线索</h2>
+              <h2>路书档案</h2>
               <p>导出文件、Agent路书与核实候选，留在同一个地方回顾。</p>
             </div>
           </div>
@@ -254,13 +292,28 @@
               保存路书
             </button>
           </div>
+          <label
+            >档案范围<select id="archive-scope">
+              <option value="all">全部旅行</option>
+              <option value="current">当前旅行</option>
+            </select></label
+          >
+          <label>城市<input id="archive-city" placeholder="筛选目的地" /></label
+          ><label
+            >状态<select id="archive-status">
+              <option value="">全部</option>
+              <option value="draft">待编排</option>
+              <option value="planned">已编排</option>
+            </select></label
+          >
+          <div id="roadbook-list"></div>
           <div id="candidate-list"></div>
           <div id="results-list"></div>
         </section>
         <section id="data-page" class="page" hidden>
           <div class="panel-head">
             <div>
-              <h2>知道数据从哪里来</h2>
+              <h2>数据配置</h2>
               <p>有来源，有年份；不知道的地方，明确留白。</p>
             </div>
           </div>
@@ -278,14 +331,14 @@
               ><small>常规时间不等于当日开放</small>
             </div>
           </div>
-          <div class="config-section">
-            <h3>地图与搜索</h3>
+          <details class="config-section" id="map-settings">
+            <summary>高德地图与搜索 <span id="map-summary"></span></summary>
             <p>
               地图采用高德 Web 服务，经本机服务端代理加载；Key
               不写入页面或安装包。当前 MCP 查询与地图服务分别验证。
             </p>
-            <div class="key-guide">
-              <h4>第一次使用高德？</h4>
+            <details class="key-guide">
+              <summary>如何申请高德 Key</summary>
               <ol>
                 <li>登录高德开放平台，在“应用管理 → 我的应用”创建一个应用。</li>
                 <li>
@@ -315,7 +368,7 @@
                   >官方 Key 申请指南 ↗</a
                 >
               </p>
-            </div>
+            </details>
             <form id="map-key-form">
               <label
                 >高德 Web 服务 Key<input
@@ -332,15 +385,12 @@
               高德 Web 服务由本机代理提供；Agent
               搜索与高德技能以当前原生会话实际工具为准。agent-reach 为可选渠道。
             </p>
-          </div>
-          <div class="config-section">
-            <h3>字段完整度</h3>
+          </details>
+          <details class="config-section">
+            <summary>名录、来源与本地资料</summary>
             <p>
               历史目录提供馆名、等级和性质；全国地址、坐标、公众号与动态开放状态尚未全量补齐。城市名称推断与已核实城市分开保存。
             </p>
-            <a class="outline" href="/api/find-museum/catalog.csv" download
-              >下载全国历史名录 CSV</a
-            >
             <p id="root-description"></p>
             <button class="outline" id="choose-root-settings">
               选择/切换本地资料目录
@@ -348,7 +398,7 @@
             <p>
               运行目录与会话工作区分开；切换目录不会删除原目录。名录的年份、未知字段和已核实馆址分开管理。
             </p>
-          </div>
+          </details>
         </section>
       </main>
     </div>

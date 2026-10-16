@@ -9,6 +9,7 @@ const client = (await readFile(file("src/client.js"), "utf8")).replaceAll(
 await mkdir(file("lib/"), { recursive: true });
 await writeFile(file("lib/client.js"), client);
 await copyFile(file("src/domain/route.mjs"), file("public/route.mjs"));
+await copyFile(file("src/domain/roadbook.mjs"), file("public/roadbook.mjs"));
 const source = await readFile(
   file("data/processed/museums-national.csv"),
   "utf8",
@@ -66,4 +67,13 @@ console.log(
     catalog: catalog.length,
     dependenciesBundled: 0,
   }),
+);
+
+// The new prototype uses the real UI, avoiding a second drifting implementation.
+await writeFile(
+  file("design/prototype-v0.2.html"),
+  (await readFile(file("public/index.html"), "utf8")).replace(
+    "<head>",
+    '<head>\n    <base href="/public/">',
+  ),
 );

@@ -1,4 +1,5 @@
-import { serveMap } from "../src/maps.mjs";
+import { createService } from "../src/server.mjs";
+const service = createService();
 import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -15,9 +16,13 @@ const types = {
   ".svg": "image/svg+xml",
 };
 const server = http.createServer(async (req, res) => {
-  if (req.url?.startsWith("/api/find-museum/map?")) return serveMap(req, res);
+  if (
+    req.url?.startsWith("/api/find-museum/") ||
+    req.url?.startsWith("/workbench/find-museum/")
+  )
+    return service.handle(req, res);
   if (req.url === "/") {
-    res.writeHead(302, { location: "/design/prototype-v0.1.html" });
+    res.writeHead(302, { location: "/design/prototype-v0.2.html" });
     res.end();
     return;
   }

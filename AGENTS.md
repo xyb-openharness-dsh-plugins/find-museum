@@ -42,3 +42,7 @@
 Git 同步只更新脚手架克隆，不覆盖业务项目。init 保留需求确认与无覆盖行为；通过 npm link 激活。修改 CLI/初始化器后执行 npm run check 与 npm test；sync 必须 ff-only，脏树/分叉/无 upstream 不自动处理。不要因初始化成功声称 Desktop 已安装。见 docs/CLI-GIT.md。
 
 UI 风格决策可结合 docs/08-TASTE-SEED.md 的 Taste Seed 来源，按需读取并将主辅风格转成具体 token；配合实际可用的 frontend 技能，预览后由开发者确认。实际读取/部署状态如实记录，保留原型合同和可读性优先级。
+
+## 市场发布
+
+作者后续投稿指令在prompts/MARKET-PUBLISH.md；先读docs/project/MARKET-PUBLISH.md和官网最新验收规范。category固定other，PR建议新增旅行；只增一个YAML。最终包实测、真实Desktop截图齐备前不得投稿。MIT已于2026-10-16获作者明确确认。

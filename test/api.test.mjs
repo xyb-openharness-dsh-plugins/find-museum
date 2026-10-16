@@ -13,9 +13,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { createService } from "../src/server.mjs";
-async function fixture(t) {
+async function fixture(t, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), "find-museum-api-"));
-  const service = createService(),
+  const service = createService(options),
     server = http.createServer(service.handle);
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = "http://127.0.0.1:" + server.address().port;
@@ -66,7 +66,7 @@ test("无资料目录也能查全国名录、分页和原型静态资源", async
   assert.equal((await f.req("health")).body.configured, false);
   const page = await fetch(f.base + "/workbench/find-museum/");
   assert.equal(page.status, 200);
-  assert.ok((await page.text()).includes("我的路线"));
+  assert.ok((await page.text()).includes("设计路书"));
 });
 test("写请求必须同源；目录不存在不自动创建", async (t) => {
   const f = await fixture(t);
@@ -309,9 +309,7 @@ test("重新定位既有馆址保留未提交更新的介绍，基础CSV可以�
     before.intro,
   );
   const csv = await fetch(f.base + "/api/find-museum/catalog.csv");
-  assert.equal(csv.status, 200);
-  assert.match(csv.headers.get("content-type"), /csv/);
-  assert.ok((await csv.text()).includes("museum_id"));
+  assert.equal(csv.status, 404);
 });
 test("批量选择馆址后按Day N顺序一次性加入路线；陈旧提交不覆盖", async (t) => {
   const f = await fixture(t),
@@ -415,4 +413,173 @@ test("高德批量馆址可仅加入清单，不强行安排时长、Day N或创
   assert.deepEqual(r.body.trip.stops, []);
   assert.equal(r.body.venues.length, 6);
   assert.deepEqual((await f.req("bootstrap")).body.bindings, {});
+});
+
+test("通用地点收藏、分类时长与旧数据兼容；重复保存保留去过笔记", async (t) => {
+  const f = await fixture(t),
+    a = await configured(f);
+  const place = {
+    id: "food-test",
+    kind: "food",
+    provider: "manual",
+    unlocated: true,
+    name: "测试餐馆",
+    city: "苏州",
+    address: "",
+    sourceUrl: "",
+    openingStatus: "unknown",
+  };
+  const created = await f.req("places", "POST", {
+    places: [place],
+    tripId: a.id,
+    revision: a.revision,
+  });
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  assert.deepEqual(created.body.trip.selections, [place.id]);
+  assert.deepEqual(created.body.trip.stops, []);
+  await f.req("favorites", "PUT", {
+    id: place.id,
+    visited: true,
+    note: "私人备注，不应分享",
+  });
+  const again = await f.req("places", "POST", { places: [place] });
+  assert.equal(again.body.favorites[0].visited, true);
+  assert.equal(again.body.favorites[0].note, "私人备注，不应分享");
+  const plan = await f.req("trip", "PUT", {
+    ...created.body.trip,
+    stops: [{ id: place.id, day: 1, minutes: 60 }],
+  });
+  assert.equal(plan.status, 200, JSON.stringify(plan.body));
+  assert.equal(plan.body.trip.stops[0].minutes, 60);
+  const bad = await f.req("trip", "PUT", {
+    ...plan.body.trip,
+    stops: [{ id: stops[0].id, day: 1, minutes: 60, kind: "food" }],
+  });
+  assert.equal(bad.status, 400, "不能伪造kind绕过博物馆时长");
+  const stale = await f.req("places", "POST", {
+    places: [{ ...place, id: "new-food" }],
+    tripId: a.id,
+    revision: a.revision,
+  });
+  assert.equal(stale.status, 409);
+  assert.ok(
+    !(await f.req("bootstrap")).body.venues.some((v) => v.id === "new-food"),
+  );
+});
+
+test("路书冻结版本、重复保存幂等、分享不带路径备注、跨旅行下载与恢复", async (t) => {
+  const f = await fixture(t),
+    a = await configured(f);
+  let current = (
+    await f.req("selection", "PUT", {
+      tripId: a.id,
+      inputRevision: a.revision,
+      ids: [stops[0].id],
+    })
+  ).body.trip;
+  const draft = await f.req("roadbooks", "POST", {
+    tripId: a.id,
+    revision: current.revision,
+  });
+  assert.equal(draft.status, 201, JSON.stringify(draft.body));
+  assert.equal(draft.body.roadbook.snapshot.status, "draft");
+  const same = await f.req("roadbooks", "POST", {
+    tripId: a.id,
+    revision: current.revision,
+  });
+  assert.equal(same.body.roadbook.id, draft.body.roadbook.id);
+  current = (await f.req("trip", "PUT", { ...current, stops })).body.trip;
+  const planned = await f.req("roadbooks", "POST", {
+    tripId: a.id,
+    revision: current.revision,
+  });
+  assert.equal(planned.body.roadbook.version, 2);
+  assert.equal(planned.body.roadbook.snapshot.status, "planned");
+  await f.req("favorites", "PUT", {
+    id: stops[0].id,
+    note: "private-note",
+    visited: true,
+  });
+  const changed = await f.req("trip", "PUT", {
+    ...current,
+    title: "新草稿标题",
+    stops: [{ ...stops[0], day: 3 }],
+  });
+  const archive = planned.body.roadbook;
+  for (const format of ["html", "md", "json", "csv"]) {
+    const exported = await f.req("export", "POST", {
+      roadbookId: archive.id,
+      format,
+      share: true,
+    });
+    assert.equal(exported.status, 201, JSON.stringify(exported.body));
+    const body = await (await fetch(f.base + exported.body.downloadUrl)).text();
+    assert.ok(body.includes("周末寻馆") || format === "csv");
+    assert.ok(!body.includes("新草稿标题"));
+    assert.ok(!body.includes(f.dir));
+    assert.ok(!body.includes("private-note"));
+  }
+  const all = (await f.req("roadbooks")).body.roadbooks;
+  assert.equal(all.length, 2);
+  assert.equal(all[0].snapshot.title, "周末寻馆");
+  const restored = await f.req("roadbooks", "PUT", {
+    id: archive.id,
+    revision: changed.body.trip.revision,
+  });
+  assert.equal(restored.status, 200, JSON.stringify(restored.body));
+  assert.deepEqual(restored.body.trip.stops, stops);
+  assert.equal(
+    (
+      await f.req("roadbooks", "PUT", {
+        id: archive.id,
+        revision: current.revision,
+      })
+    ).status,
+    409,
+  );
+});
+
+test("标签推荐3–5个真实返回候选；缺评分留空、缓存不写收藏且取消无事实", async (t) => {
+  let calls = 0;
+  const f = await fixture(t, {
+    amap: async (action, params) => {
+      calls++;
+      assert.equal(action, "around");
+      assert.equal(params.kind, "food");
+      assert.equal(params.radius, 3000);
+      return {
+        pois: Array.from({ length: 7 }, (_, i) => ({
+          id: "POI00" + i,
+          name: "测试小吃" + i,
+          location: "120.62,31.32",
+          cityname: "苏州市",
+          address: "测试街道",
+          biz_ext: i === 0 ? { rating: "4.5", cost: "25" } : { rating: [] },
+        })),
+      };
+    },
+  });
+  await configured(f);
+  const query = {
+    tag: "特色小吃",
+    city: "苏州",
+    center: { longitude: 120.62, latitude: 31.32, crs: "GCJ-02" },
+  };
+  const r = await f.req("recommendations", "POST", query);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.places.length, 5);
+  assert.equal(r.body.places[0].rating.provider, "amap");
+  assert.equal(r.body.places[1].rating, null);
+  assert.equal((await f.req("bootstrap")).body.favorites.length, 0);
+  assert.equal((await f.req("bootstrap")).body.venues.length, 5);
+  const cached = await f.req("recommendations", "POST", query);
+  assert.equal(cached.body.cached, true);
+  assert.equal(calls, 1);
+  await f.req("recommendations", "POST", { ...query, refresh: true });
+  assert.equal(calls, 2);
+  assert.equal(
+    (await f.req("recommendations", "POST", { ...query, tag: "伪造榜单" }))
+      .status,
+    400,
+  );
 });

@@ -122,6 +122,7 @@ export async function amapQuery(action, params = {}) {
   const paths = {
     geo: "geocode/geo",
     search: "place/text",
+    around: "place/around",
     detail: "place/detail",
     driving: "direction/driving",
   };
@@ -131,10 +132,26 @@ export async function amapQuery(action, params = {}) {
     values.address = String(params.address || "").slice(0, 200);
     values.city = String(params.city || "").slice(0, 80);
   }
-  if (action === "search") {
+  if (action === "search" || action === "around") {
     values.keywords = String(params.keywords || "").slice(0, 200);
     values.city = String(params.city || "").slice(0, 80);
-    values.types = "140100";
+    const types = {
+      museum: "140100",
+      food: "050000",
+      attraction: "110000",
+      citywalk: "110000|140000",
+    };
+    if (params.kind && !types[params.kind]) throw new Error("不支持的地点类别");
+    values.types = types[params.kind || "museum"];
+    if (action === "around") {
+      if (!/^\d+(\.\d+)?,\d+(\.\d+)?$/.test(params.location || ""))
+        throw new Error("推荐中心无效");
+      values.location = params.location;
+      values.radius = String(
+        Math.max(500, Math.min(10000, Number(params.radius) || 3000)),
+      );
+      values.sortrule = "distance";
+    }
     values.offset = "20";
     values.page = "1";
     values.extensions = "all";

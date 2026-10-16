@@ -4,7 +4,7 @@
 
 Museum 机构 1:N Venue 馆址；Trip 旅行 1:N Selection 收藏入本次旅行的馆址，1:N TripStop 已编排站点。一个机构可有多个分馆，不合并馆址。SessionBinding N:1 Trip；Favorite 跨旅行保存参观笔记；Trip 1:N Candidate / Artifact。
 
-**清单不等于路线。** 第一阶段 `trip_selection` 只有馆址ID和顺序，没有day或minutes。第二阶段才创建 `trip_stop`，使用Day N和240–480分钟。加入清单不触发时长限制、自动排日或新建会话。
+**清单不等于路线。** 第一阶段 `trip_selection` 只有馆址ID和顺序，没有day或minutes。第二阶段才创建 `trip_stop`，使用Day N和按地点类别校验的分钟数。加入清单不触发时长限制、自动排日或新建会话。
 
 ## 实际数据表
 
@@ -14,10 +14,10 @@ Museum 机构 1:N Venue 馆址；Trip 旅行 1:N Selection 收藏入本次旅行
 | 内存 SQLite museum | id / name / province / city / grade / county / payload，城市/等级索引 | 启动即离线查询，选择目录前不写业务文件 |
 | trips.sqlite / trip | id、title、settings_json、revision、archived、updated_at | 用户确认目录下的旅行事实 |
 | trip_selection | trip_id、venue_id、position | 建清单，无day/minutes |
-| trip_stop | trip_id、venue_id、position、day、minutes | Day 1–30；4–8小时参观；同一旅行馆址唯一 |
+| trip_stop | trip_id、venue_id、position、day、minutes | Day 1–30；博物馆4–8小时，其他地点15–480分钟；同一旅行馆址唯一 |
 | favorite | venue_id、payload(note/visited)、updated_at | 参观笔记与收藏，不跟名录更新被覆盖 |
 | candidate | id、trip_id、payload、status、created_at | pending/confirmed/rejected；保留来源和输入revision |
-| venue_override | id、payload、updated_at | 用户确认的馆址补充，覆盖包内同ID记录 |
+| venue_override | id、payload、updated_at | 通用Place扩展；kind/provider/providerPoiId/rating/themes/unlocated，保留旧馆址ID |
 | artifact | id、trip_id、kind、path、payload、created_at | 格式、输入revision、SHA-256、结果文件索引 |
 | migration_ledger | version、applied_at | 递增迁移，不清库升级 |
 | .desktop-session-projects.json | sessionId → tripId | 业务关联，不授予会话owner权限 |
@@ -55,3 +55,17 @@ SQLite是事实源，input和route.json可重建；Agent直接改快照不更新
 等级及年份、常规开放时间、临时公告与有效区间分开。city_candidate来自馆名推断，不能当核实城市。当前地图全部使用GCJ-02；其他坐标必须核实后导入，不拿城市中心冒充馆址。非unknown开放状态必须附核实时间和有效日期，失效后界面回到待核实。
 
 后续字段级Claim/OpeningNotice独立表、锁定点、时间窗冲突和可选记忆索引属于扩展设计，首版不伪称已经实现。记忆只能引用事实ID和revision，不能覆盖数据库事实。
+
+
+## 下一轮扩展入口
+
+0.2计划将收藏扩展为旅行Place（博物馆/美食/景点/Citywalk），并增加Roadbook/RoadbookVersion用于可浏览档案。分类时长不再共用museum约束。设计与迁移顺序见[0.2修改需求第7节](../changes/V0.2-NAVIGATION-AND-TRAVEL-LIBRARY.md)。以上是待实现设计，本页上文表格仍描述0.1真实结构。
+
+## 0.2实际实现与迁移5
+
+- Place复用venue_override的已校验JSON载荷，不另建同ID的重复地点事实表。原museum机构链接和Venue ID继续兼容；非博物馆通过kind区分。评分为provider/value/scale/checkedAt；高德未给范围时scale=null，原样显示，不换算星级。
+- migration5先VACUUM INTO生成trips.pre-v5-时间.sqlite一致备份，再事务重建trip_stop约束为15–480分钟。更严格的museum下限由服务端地点类别和领域校验共同执行；旧顺序、Day、收藏、笔记和revision保留。
+- roadbook_version：id/trip_id/version/input_revision/snapshot/created_at；(trip_id,version)和(trip_id,input_revision)唯一。单行冻结版本直接承载Roadbook读模型，避免额外空壳主表。旧Artifact没有可靠快照时作为历史附件保留。
+- Artifact.payload新增roadbookId/status，格式附件归到同一路书版本；Agent结果初始pending，用户确认后confirmed。分享、预览和下载不修改冻结输入。
+- recommendation_cache：cache_key/payload/created_at；30分钟缓存查询，不自动转成收藏。Favorite仍独立存笔记和visited；同地点重新推荐不清空已保存内容。
+- 未归属清单只在当前Desktop来源localStorage暂存，明确未落盘。正式清单写入用户选定目录SQLite；批量补充地点、收藏和清单在同一事务内保存。
