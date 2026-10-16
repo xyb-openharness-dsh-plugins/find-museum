@@ -77,6 +77,11 @@ try {
     !page.includes("博物馆清单")
   )
     throw Error("Extracted package smoke check failed");
+  for (const [path, type] of [["song.css", "text/css"], ["assets/song/pushou-ring.svg", "image/svg+xml"]]) {
+    const asset = await fetch(base + "/workbench/find-museum/" + path);
+    if (!asset.ok || !asset.headers.get("content-type")?.includes(type))
+      throw Error("Packaged appearance asset missing: " + path);
+  }
   const bytes = await readFile(file),
     hash = createHash("sha256").update(bytes).digest("hex");
   await copyFile(file, "dist/find-museum.tgz");

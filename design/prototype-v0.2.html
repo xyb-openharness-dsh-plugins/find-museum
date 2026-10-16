@@ -7,8 +7,9 @@
     <title>寻馆 · 博物馆路线规划</title>
     <link rel="stylesheet" href="vendor/leaflet.css" />
     <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="song.css" />
   </head>
-  <body>
+  <body data-theme="song" data-page="discover">
     <svg class="svg-defs" aria-hidden="true">
       <defs>
         <symbol id="i-museum" viewBox="0 0 24 24">
@@ -46,6 +47,11 @@
             ><span>寻馆<small>MUSEUM ATLAS</small></span>
           </div>
           <span class="prototype-badge"><span id="version">连接中</span></span
+          ><label class="appearance-switch"
+            >外观<select id="appearance-theme">
+              <option value="song">宋韵</option>
+              <option value="classic">经典</option>
+            </select></label
           ><button class="quiet" id="large-font">大字</button>
         </header>
         <label class="mobile-nav"
@@ -241,6 +247,9 @@
             </button>
           </div>
           <div class="exportbar">
+            <button class="outline" id="agent-html-route">
+              和 Agent 定制 HTML 路书
+            </button>
             <button class="primary" id="archive-plan">保存到路书档案 →</button>
             <span id="distance-total"></span>
           </div>
@@ -290,23 +299,26 @@
             <button class="outline" id="import-candidates-results">
               导入核实结果</button
             ><button class="outline" id="save-roadbook-results">
-              保存路书
+              登记 Agent 结果
             </button>
           </div>
-          <label
-            >档案范围<select id="archive-scope">
-              <option value="all">全部旅行</option>
-              <option value="current">当前旅行</option>
-            </select></label
-          >
-          <label>城市<input id="archive-city" placeholder="筛选目的地" /></label
-          ><label
-            >状态<select id="archive-status">
-              <option value="">全部</option>
-              <option value="draft">待编排</option>
-              <option value="planned">已编排</option>
-            </select></label
-          >
+          <div class="archive-filters" aria-label="筛选路书档案">
+            <label
+              >档案范围<select id="archive-scope">
+                <option value="all">全部旅行</option>
+                <option value="current">当前旅行</option>
+              </select></label
+            >
+            <label
+              >城市<input id="archive-city" placeholder="筛选目的地" /></label
+            ><label
+              >状态<select id="archive-status">
+                <option value="">全部</option>
+                <option value="draft">待编排</option>
+                <option value="planned">已编排</option>
+              </select></label
+            >
+          </div>
           <div id="roadbook-list"></div>
           <div id="candidate-list"></div>
           <div id="results-list"></div>

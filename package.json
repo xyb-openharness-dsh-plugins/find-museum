@@ -1,6 +1,6 @@
 {
   "name": "@xyb-community/find-museum",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "发现目的地城市和周边县域博物馆，筛选、规划并回顾参观路线",
   "private": true,
   "type": "module",
@@ -15,6 +15,7 @@
     "dsh",
     "lib",
     "public",
+    "assets",
     "src",
     "data/processed",
     "skills",
@@ -28,6 +29,7 @@
     "check": "node scripts/check-source.mjs && node scripts/check-workbench-package.mjs .",
     "pack:check": "npm pack --dry-run",
     "design": "node scripts/serve-design.mjs",
+    "design:roadbook": "node scripts/build-roadbook-preview.mjs",
     "design:build": "node scripts/build-design.mjs",
     "test": "node --test test/*.test.mjs",
     "check:data": "python3 scripts/check-data.py",

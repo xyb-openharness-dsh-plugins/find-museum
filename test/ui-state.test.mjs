@@ -15,6 +15,7 @@ function fixture(options = {}) {
   );
   const element = () => ({
     value: "",
+    dataset: {},
     textContent: "",
     innerHTML: "",
     hidden: false,
@@ -32,7 +33,9 @@ function fixture(options = {}) {
     },
   });
   for (const k of ids.keys()) ids.set(k, element());
-  for (const k of [".searchbar"]) ids.set(k, element());
+  ids.set("#action-form", element());
+  for (const k of [".searchbar", ".workflow-steps", ".intro-note"])
+    ids.set(k, element());
   const pages = ["discover", "route", "favorites", "results", "data"].map(
     (k) => ({ ...element(), id: k + "-page" }),
   );
@@ -76,6 +79,7 @@ function fixture(options = {}) {
       }),
     console,
     URL,
+    URLSearchParams,
     Map,
     Set,
     FormData,
@@ -83,7 +87,7 @@ function fixture(options = {}) {
   let code = readFileSync(
     new URL("../public/app.js", import.meta.url),
     "utf8",
-  ).replace(/^import .*;\n/gm, "");
+  ).replace(/^import[\s\S]*?;\n/gm, "");
   const start = code.indexOf("await safe(async () => {");
   assert.ok(start > 0);
   const end = code.indexOf("\n})();", start);
@@ -177,4 +181,53 @@ test("加入清单再次点击移除；暂存和连续点击均按最新状态�
   assert.equal(calls, 2);
   assert.deepEqual(current.selections, []);
   assert.equal(current.revision, 3);
+});
+
+test("高德馆址匹配容忍空数组/数字/对象typecode；仅有效博物馆显示，不使整批失败", async () => {
+  const f = fixture({
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({
+        pois: [
+          null,
+          { name: "空数组", typecode: [] },
+          { name: "数字", typecode: 140100 },
+          { name: "对象", typecode: {} },
+          { name: "缺少类别" },
+          { id: "POI001", name: "测试博物馆", typecode: "140100" },
+          { id: "POI002", name: "停车场", typecode: "140100" },
+        ],
+      }),
+    }),
+  });
+  await f.run('searchOnline("测试")');
+  const content = f.ids.get("#action-content").innerHTML;
+  assert.match(content, /测试博物馆/);
+  assert.ok(!content.includes("选择空数组"));
+  assert.ok(!content.includes("选择停车场"));
+  assert.equal(f.ids.get("#action-dialog").open, true);
+});
+
+test("宋韵与经典切换保留旅行与档案，筛选分区且只有一个空状态", () => {
+  const f = fixture();
+  assert.equal(f.run("document.body.dataset.theme"), "song");
+  f.run(
+    'trip={id:"keep",selections:[],stops:[],settings:{}};applyAppearance("classic")',
+  );
+  assert.equal(f.run("document.body.dataset.theme"), "classic");
+  assert.equal(f.run("trip.id"), "keep");
+  assert.equal(f.storage.get("find-museum.appearance"), "classic");
+  f.run('showTab("results")');
+  assert.equal(f.ids.get("#results-list").innerHTML, "");
+  assert.match(f.ids.get("#roadbook-list").innerHTML, /去设计路书/);
+  assert.equal(f.ids.get(".workflow-steps").hidden, true);
+});
+
+test("打开旅行时标题更新为当前目的地，保留当前Tab", async () => {
+  const f = fixture({fetch:async()=>({ok:true,json:async()=>({trip:{id:"city",selections:[],stops:[],settings:{destination:"三门峡",center:{longitude:111.2,latitude:34.8,crs:"GCJ-02"}}}})})});
+  await f.run('openTrip("city",false)');
+  assert.equal(f.ids.get("#page-title").textContent,"三门峡，馆里见。");
+  f.run('tab="results"');
+  await f.run('openTrip("city",false)');
+  assert.equal(f.ids.get("#page-title").textContent,"路书档案");
 });

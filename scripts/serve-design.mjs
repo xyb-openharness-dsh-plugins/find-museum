@@ -32,8 +32,8 @@ const server = http.createServer(async (req, res) => {
       ),
       rel = pathname === "/" ? "design/prototype-v0.1.html" : pathname.slice(1);
     if (
-      !["design/", "src/domain/", "data/processed/", "public/"].some((p) =>
-        rel.startsWith(p),
+      !["design/", "src/domain/", "data/processed/", "public/", "assets/"].some(
+        (p) => rel.startsWith(p),
       )
     )
       throw Error("outside preview");

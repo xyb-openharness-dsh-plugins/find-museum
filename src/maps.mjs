@@ -124,6 +124,8 @@ export async function amapQuery(action, params = {}) {
     search: "place/text",
     around: "place/around",
     detail: "place/detail",
+    detail2: "place/detail",
+    weather: "weather/weatherInfo",
     driving: "direction/driving",
   };
   if (!paths[action]) throw new Error("不支持的高德操作");
@@ -156,6 +158,22 @@ export async function amapQuery(action, params = {}) {
     values.page = "1";
     values.extensions = "all";
   }
+  if (action === "detail2") {
+    if (
+      !Array.isArray(params.ids) ||
+      !params.ids.length ||
+      params.ids.length > 10 ||
+      params.ids.some((id) => typeof id !== "string" || !/^\w{5,40}$/.test(id))
+    )
+      throw Error("核实POI ID无效");
+    values.id = params.ids.join("|");
+    values.show_fields = "business,navi";
+  }
+  if (action === "weather") {
+    if (!/^\d{6}$/.test(params.city || "")) throw Error("天气城市编码无效");
+    values.city = params.city;
+    values.extensions = "all";
+  }
   if (action === "detail") {
     if (!/^[\w]{5,40}$/.test(params.id || "")) throw new Error("POI ID无效");
     values.id = params.id;
@@ -169,7 +187,11 @@ export async function amapQuery(action, params = {}) {
     values.extensions = "base";
     values.strategy = "0";
   }
-  const u = new URL("https://restapi.amap.com/v3/" + paths[action]);
+  const u = new URL(
+    "https://restapi.amap.com/" +
+      (action === "detail2" ? "v5/" : "v3/") +
+      paths[action],
+  );
   u.search = new URLSearchParams(values);
   let r;
   try {

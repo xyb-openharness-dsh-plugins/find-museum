@@ -69,3 +69,11 @@ SQLite是事实源，input和route.json可重建；Agent直接改快照不更新
 - Artifact.payload新增roadbookId/status，格式附件归到同一路书版本；Agent结果初始pending，用户确认后confirmed。分享、预览和下载不修改冻结输入。
 - recommendation_cache：cache_key/payload/created_at；30分钟缓存查询，不自动转成收藏。Favorite仍独立存笔记和visited；同地点重新推荐不清空已保存内容。
 - 未归属清单只在当前Desktop来源localStorage暂存，明确未落盘。正式清单写入用户选定目录SQLite；批量补充地点、收藏和清单在同一事务内保存。
+
+## 迁移6：资料核实与同路线新版本
+
+迁移前使用VACUUM INTO生成一致备份。事务重建roadbook_version，增加content_hash；唯一约束为(trip_id,version)和(trip_id,input_revision,content_hash)。旧快照原样迁移并计算摘要，新增资料版本无需伪造旅行revision。
+
+roadbook_check(id,roadbook_id,payload,created_at)记录一次查询的POI/开放时间/天气/失败和来源。查询结果本身不是当前事实；用户采纳后更新地点常规时间及来源，在同一路线下保存新的冻结路书。30分钟后须重新核实。旧版本、用户笔记和当前规划不覆盖。
+
+input/HTML-ROADBOOK.md与input/selected-roadbook.json是指定版本的Agent任务上下文。output/roadbook-<id>.json为可重建的公开快照，数据库保存私有事实和版本索引。直接写入output不等于登记结果。

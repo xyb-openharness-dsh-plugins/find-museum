@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { validateStops } from "../domain/route.mjs";
 export class RevisionConflict extends Error {
   constructor() {
@@ -169,6 +169,40 @@ TripStore.prototype.prepareBusinessTables = function () {
       CREATE TABLE roadbook_version(id TEXT PRIMARY KEY,trip_id TEXT NOT NULL REFERENCES trip(id),version INTEGER NOT NULL,input_revision INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(trip_id,version),UNIQUE(trip_id,input_revision));
       CREATE TABLE recommendation_cache(cache_key TEXT PRIMARY KEY,payload TEXT NOT NULL,created_at TEXT NOT NULL);
       INSERT INTO migration_ledger VALUES(5,datetime('now')); COMMIT;`);
+  }
+  if (
+    !this.db
+      .prepare("SELECT version FROM migration_ledger WHERE version=6")
+      .get()
+  ) {
+    this.db
+      .prepare("VACUUM INTO ?")
+      .run(join(this.root, "trips.pre-v6-" + Date.now() + ".sqlite"));
+    const rows = this.db.prepare("SELECT * FROM roadbook_version").all();
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.db.exec(`ALTER TABLE roadbook_version RENAME TO roadbook_version_v5;
+        CREATE TABLE roadbook_version(id TEXT PRIMARY KEY,trip_id TEXT NOT NULL REFERENCES trip(id),version INTEGER NOT NULL,input_revision INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,content_hash TEXT NOT NULL,UNIQUE(trip_id,version),UNIQUE(trip_id,input_revision,content_hash));`);
+      const insert = this.db.prepare(
+        "INSERT INTO roadbook_version VALUES(?,?,?,?,?,?,?)",
+      );
+      for (const r of rows)
+        insert.run(
+          r.id,
+          r.trip_id,
+          r.version,
+          r.input_revision,
+          r.snapshot,
+          r.created_at,
+          createHash("sha256").update(r.snapshot).digest("hex"),
+        );
+      this.db.exec(
+        `DROP TABLE roadbook_version_v5;CREATE TABLE roadbook_check(id TEXT PRIMARY KEY,roadbook_id TEXT NOT NULL REFERENCES roadbook_version(id),payload TEXT NOT NULL,created_at TEXT NOT NULL);INSERT INTO migration_ledger VALUES(6,datetime('now'));COMMIT;`,
+      );
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
   }
 };
 TripStore.prototype.importPlan = function (t, venues, stops) {
@@ -365,18 +399,6 @@ TripStore.prototype.savePlaces = function (places) {
     stmt.run(place.id, JSON.stringify(place), new Date().toISOString());
 };
 TripStore.prototype.saveRoadbook = function (t, places) {
-  const existing = this.db
-    .prepare(
-      "SELECT * FROM roadbook_version WHERE trip_id=? AND input_revision=?",
-    )
-    .get(t.id, t.revision);
-  if (existing) return { ...existing, snapshot: JSON.parse(existing.snapshot) };
-  const id = randomUUID(),
-    version = this.db
-      .prepare(
-        "SELECT COALESCE(MAX(version),0)+1 AS v FROM roadbook_version WHERE trip_id=?",
-      )
-      .get(t.id).v;
   const snapshot = {
     title: t.title,
     tripId: t.id,
@@ -390,18 +412,57 @@ TripStore.prototype.saveRoadbook = function (t, places) {
       .filter(Boolean),
     stops: t.stops.map((s) => ({ ...places.find((v) => v.id === s.id), ...s })),
   };
-  const now = new Date().toISOString();
+  return this.saveRoadbookSnapshot(t.id, t.revision, snapshot);
+};
+TripStore.prototype.saveRoadbookSnapshot = function (
+  tripId,
+  inputRevision,
+  snapshot,
+) {
+  const serialized = JSON.stringify(snapshot),
+    hash = createHash("sha256").update(serialized).digest("hex");
+  const existing = this.db
+    .prepare(
+      "SELECT * FROM roadbook_version WHERE trip_id=? AND input_revision=? AND content_hash=?",
+    )
+    .get(tripId, inputRevision, hash);
+  if (existing) return { ...existing, snapshot: JSON.parse(existing.snapshot) };
+  const id = randomUUID(),
+    version = this.db
+      .prepare(
+        "SELECT COALESCE(MAX(version),0)+1 AS v FROM roadbook_version WHERE trip_id=?",
+      )
+      .get(tripId).v,
+    now = new Date().toISOString();
   this.db
-    .prepare("INSERT INTO roadbook_version VALUES(?,?,?,?,?,?)")
-    .run(id, t.id, version, t.revision, JSON.stringify(snapshot), now);
+    .prepare("INSERT INTO roadbook_version VALUES(?,?,?,?,?,?,?)")
+    .run(id, tripId, version, inputRevision, serialized, now, hash);
   return {
     id,
-    trip_id: t.id,
+    trip_id: tripId,
     version,
-    input_revision: t.revision,
+    input_revision: inputRevision,
     snapshot,
     created_at: now,
+    content_hash: hash,
   };
+};
+TripStore.prototype.addCheck = function (roadbookId, report) {
+  const id = randomUUID();
+  this.db
+    .prepare("INSERT INTO roadbook_check VALUES(?,?,?,?)")
+    .run(id, roadbookId, JSON.stringify(report), report.checkedAt);
+  return { id, roadbook_id: roadbookId, report };
+};
+TripStore.prototype.checks = function () {
+  return this.db
+    .prepare("SELECT * FROM roadbook_check ORDER BY created_at DESC LIMIT 200")
+    .all()
+    .map((r) => ({
+      id: r.id,
+      roadbook_id: r.roadbook_id,
+      report: JSON.parse(r.payload),
+    }));
 };
 TripStore.prototype.roadbooks = function () {
   return this.db

@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "createdAt": "2026-10-16",
+  "assets": [
+    {
+      "file": "wadang-cloud.svg",
+      "name": "卷云瓦当意象",
+      "viewBox": "0 0 256 256",
+      "suggestedWidthPx": [
+        120,
+        240
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://www.dpm.org.cn/collection/sculpture/233699.html",
+      "photographTraced": false
+    },
+    {
+      "file": "lattice-haitang.svg",
+      "name": "海棠式窗棂意象",
+      "viewBox": "0 0 320 240",
+      "suggestedWidthPx": [
+        160,
+        300
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://lhsr.sh.gov.cn/ywdt/20210426/389b5575-2484-4328-b784-703ad37c48af.html",
+      "photographTraced": false
+    },
+    {
+      "file": "lattice-ice.svg",
+      "name": "冰裂式窗棂意象",
+      "viewBox": "0 0 320 240",
+      "suggestedWidthPx": [
+        160,
+        320
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://lhsr.sh.gov.cn/ywdt/20210426/389b5575-2484-4328-b784-703ad37c48af.html",
+      "photographTraced": false
+    },
+    {
+      "file": "garden-pavilion.svg",
+      "name": "江南园亭意象",
+      "viewBox": "0 0 640 320",
+      "suggestedWidthPx": [
+        240,
+        600
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://lhsr.sh.gov.cn/jnylwh/20221025/eaebac0313ca4829b19c1e2b0ecd9369.html",
+      "photographTraced": false
+    },
+    {
+      "file": "meander-border.svg",
+      "name": "回纹边饰意象",
+      "viewBox": "0 0 640 48",
+      "suggestedWidthPx": [
+        240,
+        640
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://www.dpm.org.cn/collection/jade/234392.html",
+      "photographTraced": false
+    },
+    {
+      "file": "cloud-scroll.svg",
+      "name": "流云纹样意象",
+      "viewBox": "0 0 320 96",
+      "suggestedWidthPx": [
+        160,
+        320
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://www.dpm.org.cn/lemmas/244385.html",
+      "photographTraced": false
+    },
+    {
+      "file": "pushou-ring.svg",
+      "name": "兽面衔环铺首意象",
+      "viewBox": "0 0 256 320",
+      "suggestedWidthPx": [
+        120,
+        260
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://www.dpm.org.cn/lemmas/245425.html",
+      "photographTraced": false
+    },
+    {
+      "file": "lotus-bowl.svg",
+      "name": "莲瓣碗器物意象",
+      "viewBox": "0 0 400 300",
+      "suggestedWidthPx": [
+        180,
+        420
+      ],
+      "decorativeOpacity": [
+        0.05,
+        0.12
+      ],
+      "license": "MIT",
+      "creation": "original-vector-impression",
+      "referenceUrl": "https://file.szmuseum.com/WaterMark/门户网站多媒体文件/academic/2019/201911_msclhwdqsjs_cheny.pdf",
+      "photographTraced": false
+    }
+  ]
+}

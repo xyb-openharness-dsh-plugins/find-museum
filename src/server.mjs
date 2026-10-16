@@ -16,6 +16,7 @@ import {
   roadbookHtml,
   publicSnapshot,
 } from "./domain/roadbook.mjs";
+import { checkRoadbook, enrichSnapshot } from "./roadbook-check.mjs";
 import { Catalog } from "./data/catalog.mjs";
 import { serveMap, amapConfigured, saveAmapKey, amapQuery } from "./maps.mjs";
 import { TripStore, RevisionConflict } from "./data/trip-store.mjs";
@@ -34,12 +35,25 @@ const assets = {
   "/workbench/find-museum/": "public/index.html",
   "/workbench/find-museum/app.js": "public/app.js",
   "/workbench/find-museum/app.css": "public/app.css",
+  "/workbench/find-museum/song.css": "public/song.css",
   "/workbench/find-museum/map.mjs": "public/map.mjs",
   "/workbench/find-museum/roadbook.mjs": "public/roadbook.mjs",
   "/workbench/find-museum/route.mjs": "public/route.mjs",
   "/workbench/find-museum/vendor/leaflet.js": "public/vendor/leaflet.js",
   "/workbench/find-museum/vendor/leaflet.css": "public/vendor/leaflet.css",
 };
+for (const name of [
+  "wadang-cloud",
+  "lattice-haitang",
+  "lattice-ice",
+  "garden-pavilion",
+  "meander-border",
+  "cloud-scroll",
+  "pushou-ring",
+  "lotus-bowl",
+])
+  assets["/workbench/find-museum/assets/song/" + name + ".svg"] =
+    "assets/song/" + name + ".svg";
 export const routes = [
   ...Object.keys(assets),
   ...[
@@ -64,6 +78,9 @@ export const routes = [
     "places",
     "recommendations",
     "roadbooks",
+    "agent-context",
+    "roadbook-check",
+    "check-apply",
     "plan-import",
     "selection",
     "selection-import",
@@ -204,6 +221,10 @@ function validateVenue(v) {
     grade: text(v.grade, 20),
     gradeAsOf: text(v.gradeAsOf, 20),
     openingHours: text(v.openingHours, 2000),
+    openingHoursSource: text(v.openingHoursSource, 40),
+    hoursCheckedAt: text(v.hoursCheckedAt, 40),
+    transportIntro: text(v.transportIntro, 2000),
+    transportSource: allowedUrl(v.transportSource),
     openingStatus: v.openingStatus,
     checkedAt: text(v.checkedAt, 40),
     publishedAt: text(v.publishedAt, 40),
@@ -293,6 +314,13 @@ export function createService({ amap = amapQuery } = {}) {
         2,
       ),
     );
+    await atomic(
+      join(folder, "input", "HTML-ROADBOOK.md"),
+      await readFile(
+        join(ROOT, "skills/museum-route-planner/references/HTML-ROADBOOK.md"),
+        "utf8",
+      ),
+    );
     await atomic(join(folder, "route.json"), JSON.stringify(t, null, 2));
     await atomic(
       join(folder, "CONTEXT.md"),
@@ -351,6 +379,7 @@ export function createService({ amap = amapQuery } = {}) {
             ".js": "text/javascript; charset=utf-8",
             ".mjs": "text/javascript; charset=utf-8",
             ".css": "text/css; charset=utf-8",
+            ".svg": "image/svg+xml",
           }[extname(file)];
         res.writeHead(200, {
           "content-type": type,
@@ -440,6 +469,7 @@ export function createService({ amap = amapQuery } = {}) {
           bindings: sessionBindings,
           artifacts: store?.artifacts() || [],
           roadbooks: store?.roadbooks() || [],
+          checks: store?.checks() || [],
           candidates: store?.candidates() || [],
           settings: {
             mapProvider: "amap-static",
@@ -515,11 +545,16 @@ export function createService({ amap = amapQuery } = {}) {
           radius,
         });
         const checkedAt = new Date().toISOString();
-        const places = (r.pois || [])
+        const places = (Array.isArray(r.pois) ? r.pois : [])
           .filter(
             (v) =>
+              v &&
               v.location &&
-              !(kind === "citywalk" && v.typecode?.startsWith("1401")) &&
+              !(
+                kind === "citywalk" &&
+                typeof v.typecode === "string" &&
+                v.typecode.startsWith("1401")
+              ) &&
               typeof v.name === "string" &&
               !/停车|入口|出口|办公室/.test(v.name),
           )
@@ -596,6 +631,120 @@ export function createService({ amap = amapQuery } = {}) {
             )
             .run(cacheKey, JSON.stringify(result), checkedAt);
         return json(res, 200, result);
+      }
+      if (path === PREFIX + "/roadbook-check" && req.method === "POST") {
+        const p = await payload(req),
+          a = requireStore()
+            .roadbooks()
+            .find((a) => a.id === p.roadbookId);
+        if (!a) fail("路书不存在", 404);
+        trip(a.trip_id);
+        const report = await checkRoadbook(a, amap, venues()),
+          r = store.addCheck(a.id, report);
+        return json(res, 201, { check: r, checks: store.checks() });
+      }
+      if (path === PREFIX + "/check-apply" && req.method === "POST") {
+        const p = await payload(req),
+          c = requireStore()
+            .checks()
+            .find((c) => c.id === p.id);
+        if (!c) fail("核实记录不存在，请重新查询", 404);
+        if (Date.now() - Date.parse(c.report.checkedAt) > 1800000)
+          fail("核实记录已超过30分钟，请导出前重新查询", 409);
+        const a = store.roadbooks().find((a) => a.id === c.roadbook_id),
+          t = trip(a.trip_id);
+        const snapshot = enrichSnapshot(a.snapshot, c.report, venues());
+        store.db.exec("BEGIN IMMEDIATE");
+        let saved;
+        try {
+          const updates = c.report.checks
+            .filter((c) => c.status === "queried" && c.openingHours)
+            .map((c) => {
+              const v = venues().find((v) => v.id === c.id);
+              return v
+                ? {
+                    ...v,
+                    openingHours: c.openingHours,
+                    openingHoursSource: "amap",
+                    hoursCheckedAt: c.checkedAt,
+                  }
+                : null;
+            })
+            .filter(Boolean);
+          store.savePlaces(updates);
+          saved = store.saveRoadbookSnapshot(
+            a.trip_id,
+            a.input_revision,
+            snapshot,
+          );
+          store.db.exec("COMMIT");
+        } catch (e) {
+          store.db.exec("ROLLBACK");
+          throw e;
+        }
+        let warning = "";
+        if (
+          !store
+            .artifacts()
+            .some(
+              (a) =>
+                a.kind === "roadbook-snapshot" &&
+                a.payload.roadbookId === saved.id,
+            )
+        ) {
+          try {
+            const folder = await tripFolder(t);
+            await safeOutput(folder);
+            const rel = "output/roadbook-" + saved.id + ".json",
+              content = JSON.stringify(publicSnapshot(saved.snapshot), null, 2);
+            await atomic(join(folder, rel), content);
+            store.addArtifact(t.id, "roadbook-snapshot", rel, {
+              roadbookId: saved.id,
+              title: saved.snapshot.title,
+              format: "json",
+              revision: saved.input_revision,
+              sha256: createHash("sha256").update(content).digest("hex"),
+            });
+          } catch (e) {
+            warning = "核实版已存数据库，输出快照未写入：" + e.message;
+          }
+        }
+        return json(res, 201, {
+          roadbook: saved,
+          roadbooks: store.roadbooks(),
+          venues: venues(),
+          artifacts: store.artifacts(),
+          checks: store.checks(),
+          warning,
+        });
+      }
+      if (path === PREFIX + "/agent-context" && req.method === "POST") {
+        const p = await payload(req),
+          t = trip(p.tripId);
+        if (t.revision !== p.revision) throw new RevisionConflict();
+        const a = requireStore()
+          .roadbooks()
+          .find((a) => a.id === p.roadbookId && a.trip_id === t.id);
+        if (!a) fail("所选档案不属于当前旅行", 404);
+        await writeContext(t);
+        const folder = await tripFolder(t);
+        await atomic(
+          join(folder, "input", "selected-roadbook.json"),
+          JSON.stringify(
+            {
+              version: a.version,
+              inputRevision: a.input_revision,
+              snapshot: publicSnapshot(a.snapshot),
+            },
+            null,
+            2,
+          ),
+        );
+        return json(res, 200, {
+          prepared: true,
+          tripId: t.id,
+          revision: t.revision,
+        });
       }
       if (path === PREFIX + "/places" && req.method === "POST") {
         requireStore();
@@ -1036,17 +1185,21 @@ export function createService({ amap = amapQuery } = {}) {
           fail("不支持的导出格式");
         const vv = new Map(venues().map((v) => [v.id, v]));
         const snapshot = publicSnapshot(
-          archive?.snapshot || {
-            schemaVersion: 2,
-            title: t.title,
-            tripId: t.id,
-            revision: t.revision,
-            destination: t.settings.destination,
-            date: t.settings.date,
-            mode: t.settings.mode,
-            selections: t.selections.map((id) => vv.get(id)).filter(Boolean),
-            stops: t.stops.map((s) => ({ ...vv.get(s.id), ...s })),
-          },
+          archive
+            ? { ...archive.snapshot, archiveVersion: archive.version }
+            : {
+                schemaVersion: 2,
+                title: t.title,
+                tripId: t.id,
+                revision: t.revision,
+                destination: t.settings.destination,
+                date: t.settings.date,
+                mode: t.settings.mode,
+                selections: t.selections
+                  .map((id) => vv.get(id))
+                  .filter(Boolean),
+                stops: t.stops.map((s) => ({ ...vv.get(s.id), ...s })),
+              },
         );
         if (!snapshot.stops.length && !snapshot.selections?.length)
           fail("请先加入地点");
@@ -1059,7 +1212,22 @@ export function createService({ amap = amapQuery } = {}) {
             : p.format === "csv"
               ? csvText(rows)
               : p.format === "html"
-                ? roadbookHtml(snapshot)
+                ? roadbookHtml(snapshot, {
+                    motifSvg: await readFile(
+                      join(
+                        ROOT,
+                        "assets/song/",
+                        rows.some(
+                          (v) =>
+                            typeof v.name === "string" &&
+                            v.name.includes("苏州博物馆"),
+                        )
+                          ? "lotus-bowl.svg"
+                          : "cloud-scroll.svg",
+                      ),
+                      "utf8",
+                    ),
+                  })
                 : roadbookText(snapshot);
         const folder = await tripFolder(t);
         await safeOutput(folder);

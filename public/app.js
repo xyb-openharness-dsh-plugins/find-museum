@@ -1,5 +1,10 @@
 import { distanceKm, withinRadius, moveStop } from "./route.mjs";
-import { placeKinds, roadbookText, publicSnapshot } from "./roadbook.mjs";
+import {
+  placeKinds,
+  roadbookText,
+  publicSnapshot,
+  personalizedHtmlPrompt,
+} from "./roadbook.mjs";
 import { attachAmap } from "./map.mjs";
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
@@ -235,7 +240,7 @@ async function openTrip(id, notify = true) {
     $("#city").value = t.settings.destination || "苏州";
   }
   renderProjects();
-  refresh();
+  showTab(tab);
   if (notify && isEmbedded) await bridge("select-trip", { tripId: id || null });
 }
 function needTrip() {
@@ -531,6 +536,8 @@ function renderMap(list) {
 }
 function showTab(t) {
   tab = t;
+  document.body.dataset.page = t;
+  $(".workflow-steps").hidden = !["discover", "route"].includes(t);
   $("#mobile-page").value = t;
   $(".searchbar").hidden = t !== "discover";
   $("#discovery-next").hidden = t !== "discover";
@@ -554,6 +561,13 @@ function showTab(t) {
           results: "路书档案",
           data: "数据配置",
         }[t];
+  $(".intro-note").textContent = {
+    discover: "先选馆，再把喜欢的地方串成路书。",
+    route: "先安排 Day N，再留出交通与休息的余地。",
+    favorites: "想去与去过，都留在自己的旅行札记里。",
+    results: "按版本回顾行程，也可交给 Agent 继续完善。",
+    data: "连接状态一目了然，详细配置按需展开。",
+  }[t];
   refresh();
   if (t === "discover") requestAnimationFrame(() => map?.invalidateSize());
 }
@@ -659,8 +673,7 @@ function renderResults() {
         (a) =>
           `<article class="artifact-row"><b>${esc(a.payload.title || a.kind)}</b><small>${esc(a.created_at)} · ${esc(a.payload.format)} · 输入revision ${a.payload.revision}</small><button class="outline" data-artifact-preview="${esc(a.id)}">浏览内容</button><a href="/api/find-museum/file?id=${encodeURIComponent(a.id)}" download>下载文件 →</a><details><summary>文件与来源</summary><small>SHA-256：${esc(a.payload.sha256)}</small></details></article>`,
       )
-      .join("") ||
-    '<div class="empty">导出路线、导入核实候选或保存路书后，可在这里回顾。</div>';
+      .join("") || "";
 }
 async function detail(id) {
   const v = boot.venues.find((x) => x.id === id);
@@ -864,9 +877,14 @@ async function searchOnline(
       params: { keywords: name, city: $("#city").value },
     }),
   });
-  const pois = (result.pois || []).filter(
+  const pois = (Array.isArray(result.pois) ? result.pois : []).filter(
     (p) =>
-      p.typecode?.startsWith("1401") &&
+      p &&
+      typeof p.name === "string" &&
+      typeof p.typecode === "string" &&
+      typeof p.id === "string" &&
+      /^[\w]{5,40}$/.test(p.id) &&
+      p.typecode.startsWith("1401") &&
       !/停车|入口|出口|展厅|办公室/.test(p.name),
   );
   searchSelection = "multi";
@@ -881,7 +899,7 @@ async function searchOnline(
         .join("") +
       (pois.length
         ? '<button type="submit" class="primary">加入博物馆清单</button>'
-        : "<p>未找到合适馆址，请更换名称或交给Agent。</p>"),
+        : `<p>未找到可核实的标准博物馆POI。高德可能只返回地址线索，缺少POI ID或机构类别，不能据此确认馆址或当前开放。</p><button type="button" class="outline" data-ask-name="${esc(name)}">交给 Agent 继续核实 ↗</button>`),
     async (f) => {
       const selected = f.getAll("poi").map((i) => pois[Number(i)]);
       if (!selected.length) throw new Error("请至少选择一处馆址");
@@ -1219,9 +1237,24 @@ document.addEventListener(
     if (d.detail) await detail(d.detail);
     if (d.recommend) await recommendPlaces(d.recommend);
     if (d.archiveOpen) openRoadbook(d.archiveOpen);
+    if (d.checkExport) {
+      const r = await api("/check-apply", {
+        method: "POST",
+        body: JSON.stringify({ id: d.checkExport }),
+      });
+      boot.roadbooks = r.roadbooks;
+      boot.artifacts = r.artifacts;
+      boot.venues = r.venues;
+      boot.checks = r.checks;
+      openRoadbook(r.roadbook.id);
+      await performArchiveDownload(r.roadbook.id, d.format, d.share === "true");
+      if (r.warning) toast(r.warning);
+    }
+
     if (d.archiveDownload)
       await downloadArchive(d.archiveDownload, d.format, d.share === "true");
     if (d.archiveAgent) await archiveAgent(d.archiveAgent);
+    if (d.archiveHtmlAgent) await archiveAgent(d.archiveHtmlAgent, true);
     if (d.archiveContinue) await continueArchive(d.archiveContinue);
     if (d.archiveCopy) await copyArchive(d.archiveCopy);
     if (d.artifactPreview) await previewArtifact(d.artifactPreview);
@@ -1311,7 +1344,7 @@ function renderRoadbookList() {
           `<article class="artifact-row"><h3>${esc(a.snapshot.title)}</h3><p>${esc(a.snapshot.destination || "目的地待定")} · 第 ${a.version} 版 · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${(a.snapshot.stops.length ? a.snapshot.stops : a.snapshot.selections).length}处</p><small>${esc(a.created_at)}</small><button class="outline" data-archive-open="${esc(a.id)}">浏览路书 →</button></article>`,
       )
       .join("") ||
-    '<p class="empty">设计好清单或 Day N 后，保存一版路书，随时回顾。</p>';
+    '<div class="empty archive-empty"><h3>留下一份自己的行记</h3><p>设计好清单或 Day N 后，保存第一版路书。</p><button class="outline" data-go="route">去设计路书 →</button></div>';
 }
 function archiveById(id) {
   const a = boot.roadbooks?.find((a) => a.id === id);
@@ -1321,7 +1354,7 @@ function archiveById(id) {
 function openRoadbook(id) {
   const a = archiveById(id);
   $("#detail-content").innerHTML =
-    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText(a.snapshot))}</div><div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-continue="${esc(id)}">继续设计</button></div><details><summary>附件与 Agent 完善结果</summary>${
+    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText({ ...a.snapshot, preflight: undefined }))}</div>${a.snapshot.preflight ? `<details class="archive-verification"><summary>天气与参访核实 · ${esc(a.snapshot.preflight.checkedAt)}</summary>${preflightMarkup(a.snapshot.preflight)}</details>` : ""}<div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-html-agent="${esc(id)}">和 Agent 定制 HTML</button><button class="outline" data-archive-continue="${esc(id)}">继续设计</button></div><details><summary>附件与 Agent 完善结果</summary>${
       (boot.artifacts || [])
         .filter(
           (x) => x.payload.roadbookId === id && x.kind !== "roadbook-snapshot",
@@ -1346,8 +1379,9 @@ async function archivePlan() {
   showTab("results");
   openRoadbook(r.roadbook.id);
   toast(r.warning || "路书已存档；继续设计将保留这一版");
+  return r.roadbook.id;
 }
-async function downloadArchive(id, format, share) {
+async function performArchiveDownload(id, format, share) {
   const a = archiveById(id),
     r = await api("/export", {
       method: "POST",
@@ -1359,14 +1393,67 @@ async function downloadArchive(id, format, share) {
   link.download = a.snapshot.title + "." + format;
   link.click();
   renderResults();
-  toast("文件已生成，可在档案中回顾");
+  toast("核实版文件已生成，已保留原路书版本");
 }
-async function archiveAgent(id) {
+async function downloadArchive(id, format, share) {
+  archiveById(id);
+  toast("正在导出前核实高德与天气，请稍候…");
+  const r = await api("/roadbook-check", {
+    method: "POST",
+    body: JSON.stringify({ roadbookId: id }),
+  });
+  boot.checks = r.checks;
+  showPreflight(r.check.id, format, share);
+}
+function preflightMarkup(report) {
+  const field = (v) => esc(v || "未提供");
+  return (
+    `<p class="soft-note">${esc(report.notice)}</p><div class="check-meta">查询时间：${field(report.checkedAt)}${report.window ? ` · 天气范围 ${esc(report.window.start)}—${esc(report.window.end)}（行程前后各1天）` : " · 请先设置行程日期以匹配天气"}</div>` +
+    report.checks
+      .map(
+        (c) =>
+          `<section class="check-place"><h3>${field(c.name)}</h3><p>${c.status === "queried" ? "已查询高德POI" : "未核实"} · 临时闭馆公告未确认${c.visitDate ? " · 参观 " + esc(c.visitDate) : ""}</p><p>最新常规时间：${field(c.openingHours || c.previousOpeningHours)}${!c.openingHours ? "（本次未返回新时间）" : ""}</p>${c.changed ? "<p>常规开放时间与存档不同，请留意核对。</p>" : ""}${c.error ? `<p class="soft-note">${esc(c.error)}</p>` : ""}${c.alerts.map((t) => `<p class="check-alert">△ ${esc(t)}</p>`).join("")}<a href="${esc(c.sourceUrl)}" target="_blank" rel="noopener noreferrer">位置来源 ↗</a></section>`,
+      )
+      .join("") +
+    report.weather
+      .map(
+        (w) =>
+          `<section class="check-weather"><h3>${esc(w.city)} · 天气</h3><small>高德发布 ${field(w.reportTime)}</small>${w.error ? `<p>未核实：${esc(w.error)}</p>` : ""}<div class="weather-grid">${w.casts.map((d) => `<div><b>${esc(d.date)}</b><p>${field(d.dayweather)} / ${field(d.nightweather)}</p><strong>${field(d.nighttemp)}—${field(d.daytemp)}℃</strong>${d.alerts.map((t) => `<p class="check-alert">△ ${esc(t)}</p>`).join("")}</div>`).join("")}</div>${w.missingDates.length ? `<p class="micro">${w.missingDates.length}天未到预报期或无数据：${esc(w.missingDates[0])}${w.missingDates.length > 1 ? "—" + esc(w.missingDates.at(-1)) : ""}；请临近出发再更新。</p>` : ""}</section>`,
+      )
+      .join("")
+  );
+}
+function showPreflight(id, format, share) {
+  const c = boot.checks?.find((c) => c.id === id);
+  if (!c) throw Error("核实记录不存在");
+  $("#detail-content").innerHTML =
+    `<div class="dialog-head"><h2>导出前，核对这几件事</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="preflight-view">${preflightMarkup(c.report)}</div><div class="archive-actions"><button class="primary" data-check-export="${esc(id)}" data-format="${esc(format)}" data-share="${share}">保存核实新版本并导出 ${esc(format.toUpperCase())}</button><button class="outline" data-archive-html-agent="${esc(c.roadbook_id)}">请 Agent 补查与定制 HTML</button></div><p class="micro">保留原档案；未核实内容会写入新版本的提醒页。</p>`;
+  if (!$("#detail").open) $("#detail").showModal();
+}
+
+async function archiveAgent(id, customHtml = false) {
   const a = archiveById(id);
   const frozen = roadbookText(a.snapshot);
   $("#detail").close();
   if (trip?.id !== a.trip_id) await openTrip(a.trip_id);
-  const p = `请协助完善下面这份已存档路书（第${a.version}版，输入revision ${a.input_revision}）。这是冻结快照，请勿用当前草稿替换；更新建议先请我确认。每个博物馆4–8小时，其他地点独立安排。请核实开放、预约、交通和特色，保留真实来源和日期；未知信息不要编造。结果可以保存到工作区output，再通过工作台“保存Agent路书”登记。\n\n${frozen}`;
+  const p = customHtml
+    ? personalizedHtmlPrompt(a.snapshot, {
+        version: a.version,
+        inputRevision: a.input_revision,
+      })
+    : `请协助完善下面这份已存档路书（第${a.version}版，输入revision ${a.input_revision}）。这是冻结快照，请勿用当前草稿替换；更新建议先请我确认。每个博物馆4–8小时，其他地点独立安排。请核实开放、预约、交通和特色，保留真实来源和日期；未知信息不要编造。结果可以保存到工作区output，再通过工作台“保存Agent路书”登记。\n\n${frozen}`;
+  if (customHtml) {
+    const t = needTrip();
+    await api("/agent-context", {
+      method: "POST",
+      body: JSON.stringify({
+        tripId: t.id,
+        revision: t.revision,
+        roadbookId: a.id,
+      }),
+    });
+    if (trip?.id !== a.trip_id) throw new Error("旅行已切换，请重新选择路书");
+  }
   if (isEmbedded) {
     await ensureSession();
     await bridge("draft", { tripId: a.trip_id, prompt: p });
@@ -1532,6 +1619,25 @@ $("#supplement-places").onclick = () =>
   );
 $("#manual-place").onclick = safe(manualPlace);
 $("#archive-plan").onclick = safe(archivePlan);
+$("#agent-html-route").onclick = safe(async () => {
+  const id = await archivePlan();
+  await archiveAgent(id, true);
+});
+function applyAppearance(value) {
+  const theme = ["song", "classic"].includes(value) ? value : "song";
+  document.body.dataset.theme = theme;
+  $("#appearance-theme").value = theme;
+  try {
+    localStorage.setItem("find-museum.appearance", theme);
+  } catch {}
+  requestAnimationFrame(() => map?.invalidateSize());
+}
+try {
+  applyAppearance(localStorage.getItem("find-museum.appearance") || "song");
+} catch {
+  applyAppearance("song");
+}
+$("#appearance-theme").onchange = (e) => applyAppearance(e.target.value);
 $("#mobile-page").onchange = (e) => showTab(e.target.value);
 $("#favorite-kind").onchange = renderFavorites;
 $("#favorite-status").onchange = renderFavorites;
@@ -1583,7 +1689,7 @@ $("#fit-map").onclick = () => {
 };
 $("#large-font").onclick = () => {
   document.body.classList.toggle("large");
-  map.invalidateSize();
+  map?.invalidateSize();
 };
 $("#open-session").onclick = safe(ensureSession);
 $("#agent-route").onclick = safe(() => sendPrompt());
@@ -1651,7 +1757,7 @@ await safe(async () => {
   if (last && boot.trips.some((t) => t.id === last))
     await openTrip(last, false);
   initMap();
-  refresh();
+  showTab(tab);
   $("#fit-map").click();
   if (isEmbedded) await bridge("ready");
   else $("#save-state").textContent = "独立开发预览 · 原生会话需在DSH中使用";

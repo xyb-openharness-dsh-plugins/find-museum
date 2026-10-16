@@ -583,3 +583,157 @@ test("标签推荐3–5个真实返回候选；缺评分留空、缓存不写收
     400,
   );
 });
+
+test("HTML定制准备只写所选档案公开上下文，不串旅行也不改变revision", async (t) => {
+  const f = await fixture(t),
+    a = await configured(f);
+  const selected = (
+    await f.req("selection", "PUT", {
+      tripId: a.id,
+      inputRevision: a.revision,
+      ids: [stops[0].id],
+    })
+  ).body.trip;
+  const r = await f.req("roadbooks", "POST", {
+    tripId: a.id,
+    revision: selected.revision,
+  });
+  const prepared = await f.req("agent-context", "POST", {
+    tripId: a.id,
+    revision: selected.revision,
+    roadbookId: r.body.roadbook.id,
+  });
+  assert.equal(prepared.status, 200, JSON.stringify(prepared.body));
+  const snapshot = JSON.parse(
+    await readFile(
+      join(a.settings.folder, "input/selected-roadbook.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(snapshot.version, 1);
+  assert.equal(snapshot.snapshot.selections[0].id, stops[0].id);
+  assert.match(
+    await readFile(join(a.settings.folder, "input/HTML-ROADBOOK.md"), "utf8"),
+    /前1天/,
+  );
+  assert.equal(
+    (await f.req("trip?id=" + a.id)).body.trip.revision,
+    selected.revision,
+  );
+  assert.equal(
+    (
+      await f.req("agent-context", "POST", {
+        tripId: a.id,
+        revision: 1,
+        roadbookId: r.body.roadbook.id,
+      })
+    ).status,
+    409,
+  );
+  const other = (
+    await f.req("trips", "POST", {
+      title: "另一旅行",
+      folder: f.dir,
+      settings: { destination: "苏州" },
+    })
+  ).body.trip;
+  assert.equal(
+    (
+      await f.req("agent-context", "POST", {
+        tripId: other.id,
+        revision: other.revision,
+        roadbookId: r.body.roadbook.id,
+      })
+    ).status,
+    404,
+  );
+});
+
+test("核实信息生成同路线新版本并回顾；旧版本与草稿revision不被覆盖", async (t) => {
+  const f = await fixture(t, {
+    amap: async (action) =>
+      action === "detail2"
+        ? {
+            pois: [
+              {
+                id: "B020001285",
+                business: { opentime_week: "合成测试：周二至周日9-17" },
+              },
+            ],
+          }
+        : action === "geo"
+          ? { geocodes: [{ adcode: "320500" }] }
+          : {
+              forecasts: [
+                {
+                  city: "苏州",
+                  reporttime: "2026-10-16 11:00:00",
+                  casts: [
+                    {
+                      date: "2026-10-24",
+                      dayweather: "雷阵雨",
+                      nightweather: "小雨",
+                      nighttemp: "18",
+                      daytemp: "24",
+                    },
+                  ],
+                },
+              ],
+            },
+  });
+  const a = await configured(f),
+    selected = (
+      await f.req("selection", "PUT", {
+        tripId: a.id,
+        inputRevision: a.revision,
+        ids: [stops[0].id],
+      })
+    ).body.trip;
+  const book = (
+    await f.req("roadbooks", "POST", {
+      tripId: a.id,
+      revision: selected.revision,
+    })
+  ).body.roadbook;
+  const checked = await f.req("roadbook-check", "POST", {
+    roadbookId: book.id,
+  });
+  assert.equal(checked.status, 201, JSON.stringify(checked.body));
+  assert.equal(checked.body.check.report.checks[0].closureVerified, false);
+  const applied = await f.req("check-apply", "POST", {
+    id: checked.body.check.id,
+  });
+  assert.equal(applied.status, 201, JSON.stringify(applied.body));
+  assert.equal(applied.body.roadbook.version, 2);
+  assert.equal(applied.body.roadbook.input_revision, book.input_revision);
+  assert.notEqual(applied.body.roadbook.id, book.id);
+  assert.equal(
+    (await f.req("trip?id=" + a.id)).body.trip.revision,
+    selected.revision,
+  );
+  assert.ok(
+    !applied.body.roadbooks.find((x) => x.id === book.id).snapshot.preflight,
+  );
+  const repeated = await f.req("check-apply", "POST", {
+    id: checked.body.check.id,
+  });
+  assert.equal(repeated.body.roadbook.id, applied.body.roadbook.id);
+  const out = await f.req("export", "POST", {
+    roadbookId: applied.body.roadbook.id,
+    format: "html",
+    share: true,
+  });
+  assert.equal(out.status, 201);
+  const html = await (await fetch(f.base + out.body.downloadUrl)).text();
+  assert.match(html, /天候与行装/);
+  assert.match(html, /行程前后各留一天/);
+  assert.match(html, /未到预报期/);
+  assert.ok(!html.includes(f.dir));
+  assert.match(html, /<svg/);
+  const files = await f.req("bootstrap");
+  assert.equal(files.body.checks.length, 1);
+  assert.equal(
+    files.body.venues.find((v) => v.id === stops[0].id).openingHoursSource,
+    "amap",
+  );
+});
