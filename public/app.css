@@ -124,6 +124,35 @@ svg {
   border-radius: 20px;
   padding: 4px 9px;
 }
+.host-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--muted);
+  font: 11px/1.25 system-ui, sans-serif;
+  white-space: nowrap;
+}
+.state-pill::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #a6aaa4;
+}
+.state-pill[data-state="ok"]::before { background: #4d876f; }
+.state-pill[data-state="warn"]::before { background: #c28b42; }
+#root-indicator[data-state="off"]::before { background: #b96d56; }
+.state-pill[data-state="pending"]::before { background: #9a9c91; }
 .quiet {
   background: transparent;
   color: var(--muted);
@@ -1052,6 +1081,7 @@ body.large .micro {
   padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
+.projectbar[hidden] { display: none; }
 .projectbar label {
   display: flex;
   align-items: center;

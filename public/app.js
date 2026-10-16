@@ -35,6 +35,7 @@ let boot = {
   page = 1,
   total = 0,
   searchToken = 0,
+  hostContext = { received: false },
   center = { longitude: 120.627856, latitude: 31.322948, crs: "GCJ-02" },
   centerName = "苏州博物馆本馆",
   sessionId = null,
@@ -103,6 +104,8 @@ window.addEventListener("message", (e) => {
   }
   if (d.type === "context") {
     sessionId = d.sessionId;
+    hostContext = { ...d, received: true };
+    renderHostStatus();
     const sessionAction = $("#open-session");
     if (sessionAction) {
       sessionAction.textContent = d.sessionReady
@@ -136,7 +139,7 @@ const safe =
       $("#save-state").textContent =
         e.code === "REVISION_CONFLICT"
           ? "有较新版本，请重新选择当前旅行后再编辑"
-          : "操作未完成";
+          : "";
     }
   };
 function dialog(title, content, onSubmit) {
@@ -201,12 +204,13 @@ async function configureRoot() {
 async function reload() {
   boot = await api("/bootstrap");
   $("#version").textContent = "v" + boot.version;
+  renderHostStatus();
   $("#root-description").textContent = boot.configured
     ? "资料目录：" + boot.dataRoot
     : "尚未选择资料目录，可先检索；保存旅行时需选择。";
-  $("#choose-root").textContent = boot.configured
-    ? "切换资料目录"
-    : "选择资料目录";
+  $("#choose-root-settings").textContent = boot.configured
+    ? "切换本地资料目录"
+    : "选择本地资料目录";
   const museums = boot.venues.filter(
     (v) =>
       (!v.kind || v.kind === "museum") &&
@@ -236,10 +240,52 @@ function renderProjects() {
       )
       .join("");
 }
+function renderHostStatus() {
+  const root = $("#root-indicator"), session = $("#session-indicator");
+  if (!root || !session) return;
+  root.dataset.state = boot.configured ? "ok" : "off";
+  root.textContent = boot.configured ? "资料目录已连接" : "未连接资料目录";
+  root.title = boot.configured
+    ? "本地资料目录已就绪；详细路径可在数据配置中查看"
+    : "尚未选择本地资料目录；可在数据配置中选择";
+  let label = "原生会话检查中", state = "pending", title = "正在读取 Desktop 会话归属";
+  if (!isEmbedded) {
+    label = "原生会话 · DSH 内可用";
+    state = "off";
+    title = "请在 DSH Desktop 工作台中使用原生会话";
+  } else if (hostContext.received) {
+    if (!trip) {
+      label = "未选择旅行";
+      state = "off";
+      title = "选择旅行后显示该旅行的会话关联状态";
+    } else if (hostContext.sessionReady) {
+      label = "对话已绑定";
+      state = "ok";
+      title = "当前原生 Agent 会话已关联此旅行";
+    } else if (hostContext.tripHasSession) {
+      label = "旅行会话未激活";
+      state = "warn";
+      title = "此旅行已有会话，请切换到对应会话后使用";
+    } else if (hostContext.sessionId) {
+      label = "当前对话未绑定";
+      state = "off";
+      title = "当前原生会话尚未关联此旅行";
+    } else {
+      label = "尚无原生对话";
+      state = "off";
+      title = "可在设计路书页面为当前旅行打开或新建原生会话";
+    }
+  }
+  session.dataset.state = state;
+  session.textContent = label;
+  session.title = title;
+}
 async function openTrip(id, notify = true) {
   await pendingWrites;
   const t = id ? (await api("/trip?id=" + encodeURIComponent(id))).trip : null;
   trip = t;
+  if (notify && isEmbedded) hostContext = { received: false };
+  renderHostStatus();
   $("#driving-results").textContent = "";
   try {
     if (t) localStorage.setItem(lastTripKey, t.id);
@@ -553,6 +599,7 @@ function showTab(t) {
   tab = t;
   document.body.dataset.page = t;
   $(".workflow-help-row").hidden = !["discover", "route"].includes(t);
+  $(".projectbar").hidden = ["results", "data"].includes(t);
   $("#mobile-page").value = t;
   $(".searchbar").hidden = t !== "discover";
   $("#discovery-next").hidden = t !== "discover";
@@ -1662,7 +1709,6 @@ $("#archive-city").oninput = renderRoadbookList;
 $("#archive-status").onchange = renderRoadbookList;
 $("#edit-route-plan").onclick = safe(() => openPlanner());
 $("#new-trip").onclick = newTrip;
-$("#choose-root").onclick = safe(configureRoot);
 $("#choose-root-settings").onclick = safe(configureRoot);
 $("#project-select").onchange = safe((e) => openTrip(e.target.value));
 $("#search-button").onclick = safe(locateCity);

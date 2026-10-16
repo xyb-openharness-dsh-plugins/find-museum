@@ -113,6 +113,19 @@
   color: var(--muted);
   padding: 0;
 }
+[data-theme="song"] .state-pill {
+  background: rgb(255 255 255 / 56%);
+  border-color: #d7dfd8;
+  color: #64756e;
+}
+[data-theme="song"] .state-pill[data-state="ok"] {
+  border-color: #bfd6c9;
+  color: #477761;
+}
+[data-theme="song"] #root-indicator[data-state="off"] {
+  border-color: #e2cdc4;
+  color: #936453;
+}
 [data-theme="song"] .tabs {
   order: 1;
   gap: 14px;
@@ -519,6 +532,10 @@
   [data-theme="song"] .brandbar {
     flex-wrap: wrap;
   }
+  [data-theme="song"] .host-state {
+    order: 3;
+    width: 100%;
+  }
   [data-theme="song"] .appearance-switch {
     margin-left: auto;
   }
@@ -549,6 +566,10 @@
   }
   [data-theme="song"] .brandbar {
     gap: 12px;
+  }
+  [data-theme="song"] .host-state {
+    order: 3;
+    width: 100%;
   }
   [data-theme="song"] .wordmark {
     font-size: 23px;
