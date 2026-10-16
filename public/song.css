@@ -203,22 +203,9 @@
   font-size: 15px;
   max-width: 240px;
 }
-[data-theme="song"] .workflow-steps {
-  order: 5;
-  margin: 8px 0 28px;
-  border: 0;
-  background: transparent;
-  padding: 10px 0;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-[data-theme="song"] .workflow-steps li {
-  font-size: 13px;
-  color: var(--muted);
-  background: none;
-  border: 0;
-  padding: 0;
-}
+[data-theme="song"] .workflow-help-row { margin: -8px 0 4px; }
+[data-theme="song"] .workflow-help > summary { border-color: var(--line); background: rgb(255 255 255 / 72%); }
+[data-theme="song"] .workflow-popover { background: #fffef9; border-color: #d8e1d8; }
 [data-theme="song"] .searchbar {
   order: 4;
   background: var(--white);

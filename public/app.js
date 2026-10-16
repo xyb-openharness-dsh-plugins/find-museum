@@ -539,7 +539,7 @@ function renderMap(list) {
 function showTab(t) {
   tab = t;
   document.body.dataset.page = t;
-  $(".workflow-steps").hidden = !["discover", "route"].includes(t);
+  $(".workflow-help-row").hidden = !["discover", "route"].includes(t);
   $("#mobile-page").value = t;
   $(".searchbar").hidden = t !== "discover";
   $("#discovery-next").hidden = t !== "discover";

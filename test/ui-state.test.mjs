@@ -34,7 +34,7 @@ function fixture(options = {}) {
   });
   for (const k of ids.keys()) ids.set(k, element());
   ids.set("#action-form", element());
-  for (const k of [".searchbar", ".workflow-steps", ".intro-note"])
+  for (const k of [".searchbar", ".workflow-help-row", ".intro-note"])
     ids.set(k, element());
   const pages = ["discover", "route", "favorites", "results", "data"].map(
     (k) => ({ ...element(), id: k + "-page" }),
@@ -220,7 +220,7 @@ test("宋韵与经典切换保留旅行与档案，筛选分区且只有一个�
   f.run('showTab("results")');
   assert.equal(f.ids.get("#results-list").innerHTML, "");
   assert.match(f.ids.get("#roadbook-list").innerHTML, /去设计路书/);
-  assert.equal(f.ids.get(".workflow-steps").hidden, true);
+  assert.equal(f.ids.get(".workflow-help-row").hidden, true);
 });
 
 test("打开旅行时标题更新为当前目的地，保留当前Tab", async () => {
