@@ -4,6 +4,18 @@
 
 仓库：https://github.com/xyb-openharness-dsh-plugins/find-museum
 
+## 界面预览
+
+以下为 DSH Desktop 中的工作台演示截图（苏州示例数据）。点击图片可查看完整截图；地点开放与天气信息是截图时的数据，出行前应重新核实。
+
+| 发现博物馆 | 设计路书 |
+| --- | --- |
+| [![发现博物馆](demo/preview/discovery.jpg)](demo/full/discovery.jpg) | [![设计路书](demo/preview/route-planning.jpg)](demo/full/route-planning.jpg) |
+
+| 路书浏览 | 路书导出预览 |
+| --- | --- |
+| [![路书浏览](demo/preview/roadbook-preview.jpg)](demo/full/roadbook-preview.jpg) | [![路书导出预览](demo/preview/guide-export.jpg)](demo/full/guide-export.jpg) |
+
 ## 使用流程
 
 1. **搜索并建清单**：选择目的地，检索本地名录或高德POI；单选、多选、一键全选后加入旅行清单。这一步不分配时长或Day N。

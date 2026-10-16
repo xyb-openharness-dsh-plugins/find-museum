@@ -7,6 +7,7 @@ node_modules/
 _private/
 input/
 output/
+demo/find-musuem-wb-demo*.png
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
