@@ -47,6 +47,10 @@
             ><span>寻馆<small>MUSEUM ATLAS</small></span>
           </div>
           <span class="prototype-badge"><span id="version">连接中</span></span
+          ><div class="host-state" aria-label="工作台连接状态">
+            <span class="state-pill" id="root-indicator" data-state="pending" role="status">资料目录检查中</span>
+            <span class="state-pill" id="session-indicator" data-state="pending" role="status">原生会话检查中</span>
+          </div
           ><label class="appearance-switch"
             >外观<select id="appearance-theme">
               <option value="song">宋韵</option>
@@ -95,7 +99,6 @@
               <option value="">尚未选择</option>
             </select></label
           ><button class="outline" id="new-trip">＋ 新旅行</button
-          ><button class="quiet" id="choose-root">选择资料目录</button
           ><span id="save-state" role="status"></span>
         </div>
         <section class="intro">

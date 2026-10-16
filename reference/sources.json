@@ -218,6 +218,24 @@
       "gitTracked": false,
       "worktreeStatus": null,
       "snapshot": "reference/official/market-acceptance-2026-09-29.md"
+    },
+    {
+      "id": "O-MARKET-20261016",
+      "kind": "official",
+      "url": "https://dshdesktop.com/workbench/docs/market-acceptance.md",
+      "capturedAt": "2026-10-16T09:41:01.120974+00:00",
+      "bytes": 13492,
+      "sha256": "deb32ef297d1e7cfcfac696b64346fde9703ca19c910faea3de2a1b1c5149e96",
+      "snapshot": "reference/official/market-acceptance-captured-2026-10-16.md"
+    },
+    {
+      "id": "O-CATALOG-20261016",
+      "kind": "official",
+      "url": "https://raw.githubusercontent.com/dataelement/awesome-dsh-workbench/main/catalog/README.md",
+      "capturedAt": "2026-10-16T09:41:01.122381+00:00",
+      "bytes": 11725,
+      "sha256": "b7cb7adc789eb81c3d77acb67d1b58a05f94a6da06042905bfb2111015585c40",
+      "snapshot": "reference/official/market-catalog-2026-10-16.md"
     }
   ],
   "disclosure": "保留资料指纹和采样状态用于区分证据；不公开原项目身份、本机路径或仓库提交地址。未随附的原资料不能仅凭指纹重新获取。"

@@ -2,6 +2,8 @@
 
 作者原始指令：[MARKET-PUBLISH.md](../../prompts/MARKET-PUBLISH.md)。保存提示词不代表已经投稿。
 
+社区通用步骤与命令见[工作台市场投稿流程](../10-MARKET-PUBLISHING.md)，人工检查表见[市场验收单](../../templates/MARKET-ACCEPTANCE.md)。指定版本已获用户明确手工确认时直接记录复用，只补失败、缺项或受新改动影响的项目；不要反复Computer Use与截图。以下是本项目的实际投稿记录，状态以远端PR为准。
+
 ## 固定投稿内容
 
 - 仓库：xyb-openharness-dsh-plugins/find-museum，作者已授权公开源码和安装包。

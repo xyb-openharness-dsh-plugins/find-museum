@@ -726,3 +726,11 @@ body.large[data-theme="song"] .tabs button {
 [data-theme="song"]:not([data-page="discover"]) .intro { min-height: 180px; padding-top: 24px; padding-bottom: 20px; }
 [data-theme="song"]:not([data-page="discover"]) .intro #about-data { display: none; }
 [data-theme="song"]:not([data-page="discover"]) .intro .seasonal-corner { height: 170px; width: 170px; }
+
+[data-theme="song"] .dialog-layout .dialog-head {
+  margin: 0;
+  padding: 22px 26px;
+}
+@media (max-width: 540px) {
+  [data-theme="song"] .dialog-layout .dialog-head { padding: 12px 16px; }
+}

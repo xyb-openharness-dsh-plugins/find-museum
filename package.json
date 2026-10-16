@@ -1,6 +1,6 @@
 {
   "name": "@xyb-community/find-museum",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "发现目的地城市和周边县域博物馆，筛选、规划并回顾参观路线",
   "private": true,
   "type": "module",

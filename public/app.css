@@ -1649,3 +1649,58 @@ body.large .tabs button {
     flex-wrap: wrap;
   }
 }
+
+/* Bounded dialog shell: only .dialog-body scrolls, never the title/close. */
+dialog.dialog-layout[open] {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+}
+.dialog-layout .dialog-content,
+.dialog-layout .action-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+  gap: 0;
+}
+.dialog-layout .dialog-content { max-height: inherit; }
+.dialog-layout .action-form { flex: 1 1 auto; }
+.dialog-layout .dialog-head {
+  flex: 0 0 auto;
+  padding: 22px 26px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--white, #fff);
+}
+.dialog-layout .dialog-head > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.dialog-layout .dialog-head .quiet { min-height: 44px; }
+.dialog-layout .dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 22px 26px;
+}
+.dialog-layout .action-form > .dialog-body { display: grid; gap: 16px; }
+.dialog-layout .dialog-controls,
+.dialog-layout .dialog-footer {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 12px 26px;
+  background: var(--white, #fff);
+}
+.dialog-layout .dialog-controls { border-bottom: 1px solid var(--line); }
+.dialog-layout .dialog-footer { border-top: 1px solid var(--line); }
+.dialog-layout .dialog-footer > button { width: 100%; }
+@media (max-width: 540px) {
+  .dialog-layout .dialog-head { padding: 12px 16px; }
+  .dialog-layout .dialog-body { padding: 16px; }
+  .dialog-layout .dialog-controls,
+  .dialog-layout .dialog-footer { padding: 8px 16px; }
+}

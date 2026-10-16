@@ -34,7 +34,7 @@ function fixture(options = {}) {
   });
   for (const k of ids.keys()) ids.set(k, element());
   ids.set("#action-form", element());
-  for (const k of [".searchbar", ".workflow-help-row", ".intro-note"])
+  for (const k of [".searchbar", ".workflow-help-row", ".intro-note", ".projectbar"])
     ids.set(k, element());
   const pages = ["discover", "route", "favorites", "results", "data"].map(
     (k) => ({ ...element(), id: k + "-page" }),

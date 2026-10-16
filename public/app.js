@@ -142,9 +142,37 @@ const safe =
           : "";
     }
   };
+// Keep escape and confirmation controls outside the only scrolling region.
+function prepareDialogLayout(modal, content = modal) {
+  const head = content.querySelector?.(":scope > .dialog-head");
+  if (!head || content.querySelector(":scope > .dialog-body") || content.querySelector(":scope > .action-form > .dialog-body")) return;
+  modal.classList.add("dialog-layout");
+  if (content !== modal) content.classList.add("dialog-content");
+  const form = content.querySelector(":scope > .action-form"), target = form || content;
+  const body = document.createElement("div");
+  body.className = "dialog-body";
+  body.tabIndex = 0;
+  body.setAttribute("role", "region");
+  body.setAttribute("aria-label", "弹窗内容");
+  for (const node of [...target.childNodes]) if (node !== head) body.append(node);
+  target.append(body);
+  if (form) {
+    const toolbar = body.querySelector(":scope > .selection-toolbar");
+    if (toolbar) { toolbar.classList.add("dialog-controls"); target.insertBefore(toolbar, body); }
+    const buttons = [...body.querySelectorAll(':scope > button[type="submit"]')];
+    if (buttons.length) {
+      const footer = document.createElement("div");
+      footer.className = "dialog-footer";
+      footer.append(...buttons);
+      target.append(footer);
+    }
+  }
+}
+
 function dialog(title, content, onSubmit) {
   $("#action-content").innerHTML =
     `<div class="dialog-head"><h2>${esc(title)}</h2><button type="button" class="quiet" data-close="action-dialog">关闭 ×</button></div><form class="action-form" id="action-form">${content}</form>`;
+  prepareDialogLayout($("#action-dialog"), $("#action-content"));
   $("#action-dialog").showModal();
   $("#action-form").onsubmit = safe(async (e) => {
     e.preventDefault();
@@ -181,6 +209,7 @@ async function chooseFolder(type) {
       { once: true },
     );
     document.body.appendChild(sheet);
+    prepareDialogLayout(sheet);
     sheet.showModal();
   });
 }
@@ -736,6 +765,7 @@ async function detail(id) {
   if (!v) return;
   $("#detail-content").innerHTML =
     `<div class="dialog-head"><div><p class="eyebrow">${esc(v.label || "馆址")} · ${esc(v.district || "")}</p><h2>${esc(v.name)}</h2></div><button class="quiet" data-close="detail">关闭 ×</button></div><div class="detail-section"><h3>特色与展品</h3><p>${esc(v.intro || "介绍待核实")}</p><p>${esc(v.featuredExhibits || "具体在展展品待核实")}</p>${v.introSource ? `<a href="${esc(v.introSource)}" target="_blank" rel="noopener noreferrer">介绍来源 ↗</a>` : ""}</div><div class="detail-section"><h3>位置</h3><p>${esc(v.address)}<br>${v.unlocated ? "尚未定位，不参加地图或距离计算" : esc(v.longitude) + ", " + esc(v.latitude) + " · " + esc(v.crs)}</p><a href="${esc(v.sourceUrl)}" target="_blank" rel="noopener noreferrer">位置来源 ↗</a><button class="quiet" data-center="${esc(v.id)}" ${v.unlocated ? "disabled" : ""}>以此地点为周边中心</button></div><div class="detail-section"><h3>常规时间与临时状态</h3><p>${esc(v.openingHours || "未知")}</p><p class="soft-note">${status(v)}；核实日：${esc(v.checkedAt || "未记录")}；有效期：${esc(v.validFrom || "未确认")} 至 ${esc(v.validTo || "未确认")}</p></div><div class="detail-section"><h3>官网与公众号</h3>${v.officialUrl ? `<a href="${esc(v.officialUrl)}" target="_blank" rel="noopener noreferrer">官网/主管部门 ↗</a>` : "<p>官网待核实</p>"}<p>${esc(v.wechatName || "公众号账号待核实")}</p>${v.wechatUrl ? `<a href="${esc(v.wechatUrl)}" target="_blank" rel="noopener noreferrer">公众号来源 ↗</a>` : ""}</div><div class="card-actions"><button class="primary" data-add="${esc(v.id)}" aria-pressed="${!!(trip?.selections?.includes(v.id) || draftSelection.some((x) => x.id === v.id))}">${trip?.selections?.includes(v.id) || draftSelection.some((x) => x.id === v.id) ? "✓ 已加入 · 点击移出" : "加入本次清单"}</button><button class="outline" data-advice="${esc(v.id)}">请 Agent 核实</button></div>`;
+  prepareDialogLayout($("#detail"), $("#detail-content"));
   $("#detail").showModal();
 }
 function prompt(extra = "") {
@@ -1428,6 +1458,7 @@ function openRoadbook(id) {
         )
         .join("") || "<p>暂无附件；可下载分享版，或保存Agent完善后的内容。</p>"
     }</details><details open><summary>下载与分享给旅伴</summary><p class="micro">分享版仅含公开地点、Day N 和来源。下载后可自行发给旅伴，不生成本机分享链接。</p><div class="archive-actions">${["html", "md", "csv", "json"].map((f) => `<button class="outline" data-archive-download="${esc(id)}" data-format="${f}" data-share="true">下载 ${f.toUpperCase()}</button>`).join("")}<button class="quiet" data-archive-copy="${esc(id)}">复制行程摘要</button></div></details>`;
+  prepareDialogLayout($("#detail"), $("#detail-content"));
   if (!$("#detail").open) $("#detail").showModal();
 }
 async function archivePlan() {
@@ -1491,6 +1522,7 @@ function showPreflight(id, format, share) {
   if (!c) throw Error("核实记录不存在");
   $("#detail-content").innerHTML =
     `<div class="dialog-head"><h2>导出前，核对这几件事</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="preflight-view">${preflightMarkup(c.report)}</div><div class="archive-actions"><button class="primary" data-check-export="${esc(id)}" data-format="${esc(format)}" data-share="${share}">保存核实新版本并导出 ${esc(format.toUpperCase())}</button><button class="outline" data-archive-html-agent="${esc(c.roadbook_id)}">请 Agent 补查与定制 HTML</button></div><p class="micro">保留原档案；未核实内容会写入新版本的提醒页。</p>`;
+  prepareDialogLayout($("#detail"), $("#detail-content"));
   if (!$("#detail").open) $("#detail").showModal();
 }
 
@@ -1569,6 +1601,7 @@ async function previewArtifact(id) {
     (a.payload.format === "html"
       ? `<iframe title="受限HTML预览" sandbox srcdoc="${esc(content)}" style="width:100%;height:55vh;border:0"></iframe>`
       : `<pre class="roadbook-preview">${esc(content)}</pre>`);
+  prepareDialogLayout($("#detail"), $("#detail-content"));
   if (!$("#detail").open) $("#detail").showModal();
 }
 const recommendationTags = [
