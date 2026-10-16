@@ -6,7 +6,7 @@
 
 注册使用调用方ctx.desktopWorkbenches.register，descriptor含真实GitHub repository，新包不填旧id。能力清单：register、isActive、ownsSession、currentSession、ensureSession、subscribe、sessions.scope、原生conversation input。逐项在目标Desktop核验。
 
-会话动作：新建旅行→选择目录→落盘→请求原生会话→排队开场草稿；旧项目浏览不自动建会话。session→trip多对一，显式映射优先；重启恢复数据根.desktop-session-projects.json，无会话用当前来源localStorage。业务资料与DSH工作区独立。
+会话动作：新建旅行→选择目录→落盘→请求原生会话→等待Desktop切换并确认owner→保存session→trip映射→排队开场草稿，用户确认后发送。新建旅行自动初始化独立原生会话。打开旧旅行只恢复项目，不自动建会话；用户点击“为此旅程新建原生会话”或“打开此旅行的原生会话”后才调用ensureSession。已关联会话通过ensureSession({ folder, sessionId })恢复，缺少关联时创建新会话。单纯切换业务旅行不会重绑当前会话，避免覆盖其他旅行的会话归属。创建返回与宿主会话状态更新之间存在异步时序，客户端等待当前会话和owner一致；超时显示可重试状态，不把失败伪装成成功。session→trip多对一，显式映射优先；重启恢复数据根.desktop-session-projects.json，无会话用当前来源localStorage。业务资料与DSH工作区独立。
 
 消息桥四重边界：同源+对应iframe窗口+当前项目+活跃归属会话；请求前后重新验证，异步ticket防串。保留草稿、附件和引用；无法安全追加则提示用户先处理特殊草稿，绝不自动发送。切换工作台保持iframe；离开页面提示保存未提交表单。
 

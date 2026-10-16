@@ -103,6 +103,19 @@ window.addEventListener("message", (e) => {
   }
   if (d.type === "context") {
     sessionId = d.sessionId;
+    const sessionAction = $("#open-session");
+    if (sessionAction) {
+      sessionAction.textContent = d.sessionReady
+        ? "当前会话属于此旅行"
+        : d.tripHasSession
+          ? "打开此旅行的原生会话"
+          : "为此旅行新建原生会话";
+      sessionAction.title = d.sessionReady
+        ? "当前原生 Agent 会话已关联此旅行"
+        : d.tripHasSession
+          ? "切换到此旅行已关联的原生会话"
+          : "为当前旅行建立独立的原生 Agent 会话";
+    }
     if (d.notice) $("#save-state").textContent = d.notice;
     if (
       d.tripId &&

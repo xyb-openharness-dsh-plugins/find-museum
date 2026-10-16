@@ -55,7 +55,8 @@ function fixture() {
       ensureSession: async (o) => {
         state.ensures.push(o);
         if (state.ensureWait) await state.ensureWait;
-        return state.session;
+        if (state.onEnsure) state.onEnsure();
+        return state.ensureResult || state.session;
       },
       subscribe: (fn) => {
         subscription = fn;
@@ -103,6 +104,7 @@ function fixture() {
       setInterval: () => 1,
       clearInterval: () => {},
       console,
+      setTimeout,
     },
   );
   module.apply(ctx);
@@ -185,6 +187,52 @@ test("打开已有旅行不建会话；新旅行建会话并仅追加一次开�
   f.follow();
   assert.equal(f.state.writes.length, 1);
 });
+test("新会话切换稍晚时仍等待归属并完成开场草稿初始化", async () => {
+  const f = fixture();
+  f.state.ensureResult = "s2";
+  f.state.onEnsure = () =>
+    setTimeout(() => {
+      f.state.session = "s2";
+      f.state.owner = "owned";
+    }, 80);
+  await f.send({
+    type: "trip-created",
+    tripId: "fresh-trip",
+    folder: "/chosen/fresh-trip",
+    prompt: "这个行程的独立开场白",
+  });
+  assert.equal(f.state.ensures[0].sessionId, undefined);
+  assert.equal(f.state.bindings.s2, "fresh-trip");
+  assert.equal(f.state.draft, "原有文字\n\n这个行程的独立开场白");
+});
+test("已有旅行会复用其关联的原生会话", async () => {
+  const f = fixture();
+  f.state.bindings["saved-session"] = "saved-trip";
+  f.state.session = "saved-session";
+  f.state.ensureResult = "saved-session";
+  await f.send({ type: "ready" });
+  await f.send({
+    type: "select-trip",
+    tripId: "saved-trip",
+  });
+  await f.send({
+    type: "ensure-session",
+    tripId: "saved-trip",
+    folder: "/chosen/saved-trip",
+  });
+  assert.equal(f.state.ensures.at(-1).sessionId, "saved-session");
+  assert.equal(f.state.ensures.length, 1);
+});
+test("浏览其他旅行不会悄悄改写当前原生会话的项目归属", async () => {
+  const f = fixture();
+  f.state.bindings["s1"] = "trip-a";
+  await f.send({ type: "ready" });
+  await f.send({ type: "select-trip", tripId: "trip-b" });
+  assert.equal(f.state.bindings.s1, "trip-a");
+  const context = f.state.posts.findLast((p) => p.type === "context");
+  assert.equal(context.tripHasSession, false);
+  assert.equal(context.sessionReady, false);
+});
 test("创建会话期间切换旅行，旧异步结果不追加到新项目", async () => {
   const f = fixture();
   let finish;
@@ -199,7 +247,7 @@ test("创建会话期间切换旅行，旧异步结果不追加到新项目", as
   finish();
   await waiting;
   assert.equal(f.state.writes.length, 0);
-  assert.equal(f.state.bindings.s1, "other");
+  assert.equal(f.state.bindings.s1, undefined);
 });
 test("目录选择取消只返回空路径；不调用会话创建", async () => {
   const f = fixture();
