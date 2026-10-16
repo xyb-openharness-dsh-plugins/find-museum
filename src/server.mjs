@@ -51,6 +51,10 @@ for (const name of [
   "cloud-scroll",
   "pushou-ring",
   "lotus-bowl",
+  "orchid-spring",
+  "bamboo-summer",
+  "chrysanthemum-autumn",
+  "plum-winter",
 ])
   assets["/workbench/find-museum/assets/song/" + name + ".svg"] =
     "assets/song/" + name + ".svg";

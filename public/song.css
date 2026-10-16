@@ -589,27 +589,6 @@ body.large[data-theme="song"] .tabs button {
   font-size: 18px;
 }
 
-@media (min-width: 900px) {
-  [data-theme="song"][data-page="discover"] .intro {
-    position: relative;
-  }
-  [data-theme="song"][data-page="discover"] .intro:after {
-    content: "";
-    width: 32%;
-    height: 130px;
-    right: 0;
-    bottom: 18px;
-    position: absolute;
-    pointer-events: none;
-    background: url("/workbench/find-museum/assets/song/garden-pavilion.svg")
-      center/contain no-repeat;
-    opacity: 0.12;
-  }
-  [data-theme="song"] #about-data {
-    position: relative;
-    z-index: 1;
-  }
-}
 .preflight-view {
   max-height: 58vh;
   overflow: auto;
@@ -667,3 +646,35 @@ body.large[data-theme="song"] .tabs button {
 
 /* The page masthead already names the archive. Keep a single heading. */
 [data-theme="song"] #results-page > .panel-head { display: none; }
+
+/* Four Gentlemen: an in-flow lower-right vignette, never over controls. */
+.seasonal-corner { display: none; }
+[data-theme="song"] .seasonal-corner {
+  display: block;
+  order: 8;
+  align-self: stretch;
+  height: 256px;
+  margin-top: 32px;
+  pointer-events: none;
+  user-select: none;
+  background: url("/workbench/find-museum/assets/song/orchid-spring.svg") right bottom / 240px 256px no-repeat;
+  opacity: .19;
+}
+[data-theme="song"][data-page="route"] .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/bamboo-summer.svg");
+}
+[data-theme="song"][data-page="favorites"] .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/chrysanthemum-autumn.svg");
+}
+[data-theme="song"][data-page="results"] .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/plum-winter.svg");
+}
+@media (max-width: 600px) {
+  [data-theme="song"] .seasonal-corner {
+    height: 180px;
+    margin-top: 24px;
+    background-size: 169px 180px;
+    opacity: .16;
+  }
+}
+@media print { .seasonal-corner { display: none !important; } }

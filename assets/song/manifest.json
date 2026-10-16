@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "createdAt": "2026-10-16",
   "assets": [
     {
@@ -136,6 +136,74 @@
       "license": "MIT",
       "creation": "original-vector-impression",
       "referenceUrl": "https://file.szmuseum.com/WaterMark/门户网站多媒体文件/academic/2019/201911_msclhwdqsjs_cheny.pdf",
+      "photographTraced": false
+    },
+    {
+      "file": "orchid-spring.svg",
+      "name": "春兰 · 四君子",
+      "season": "spring",
+      "viewBox": "0 0 300 320",
+      "suggestedWidthPx": [
+        140,
+        260
+      ],
+      "decorativeOpacity": [
+        0.14,
+        0.2
+      ],
+      "license": "MIT",
+      "creation": "original-botanical-line-art",
+      "photographTraced": false
+    },
+    {
+      "file": "bamboo-summer.svg",
+      "name": "夏竹 · 四君子",
+      "season": "summer",
+      "viewBox": "0 0 300 320",
+      "suggestedWidthPx": [
+        140,
+        260
+      ],
+      "decorativeOpacity": [
+        0.14,
+        0.2
+      ],
+      "license": "MIT",
+      "creation": "original-botanical-line-art",
+      "photographTraced": false
+    },
+    {
+      "file": "chrysanthemum-autumn.svg",
+      "name": "秋菊 · 四君子",
+      "season": "autumn",
+      "viewBox": "0 0 300 320",
+      "suggestedWidthPx": [
+        140,
+        260
+      ],
+      "decorativeOpacity": [
+        0.14,
+        0.2
+      ],
+      "license": "MIT",
+      "creation": "original-botanical-line-art",
+      "photographTraced": false
+    },
+    {
+      "file": "plum-winter.svg",
+      "name": "冬梅 · 四君子",
+      "season": "winter",
+      "viewBox": "0 0 300 320",
+      "suggestedWidthPx": [
+        140,
+        260
+      ],
+      "decorativeOpacity": [
+        0.14,
+        0.2
+      ],
+      "license": "MIT",
+      "creation": "original-botanical-line-art",
       "photographTraced": false
     }
   ]
