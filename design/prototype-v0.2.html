@@ -58,8 +58,8 @@
           >工作台页面<select id="mobile-page">
             <option value="discover">发现博物馆</option>
             <option value="route">设计路书</option>
+            <option value="results">路书浏览</option>
             <option value="favorites">我的收藏</option>
-            <option value="results">路书档案</option>
             <option value="data">数据配置</option>
           </select></label
         >
@@ -69,10 +69,10 @@
           ><button data-tab="route">
             <svg><use href="#i-route" /></svg>设计路书
             <span id="route-count">0</span></button
+          ><button data-tab="results">
+            <svg><use href="#i-book" /></svg>路书浏览</button
           ><button data-tab="favorites">
             <svg><use href="#i-heart" /></svg>我的收藏</button
-          ><button data-tab="results">
-            <svg><use href="#i-book" /></svg>路书档案</button
           ><button data-tab="data">数据配置</button>
         </nav>
         <ol class="workflow-steps">
@@ -95,10 +95,9 @@
             <p class="eyebrow">一座大馆之外，还有别的故事</p>
             <h1 id="page-title">苏州，馆里见<span>。</span></h1>
             <p class="intro-note">把城市的轮廓，看得更细一点。</p>
+            <button class="outline" id="about-data">名录说明 <span>↗</span></button>
           </div>
-          <button class="outline" id="about-data">
-            名录说明 <span>↗</span>
-          </button>
+          <div class="seasonal-corner" aria-hidden="true"></div>
         </section>
         <section class="searchbar">
           <label class="destination"
@@ -216,6 +215,7 @@
             </div>
           </div>
           <div class="trip-conditions">
+            <label>路书名称<input id="trip-title" maxlength="160" placeholder="为这一次行程起个名字" /></label>
             <label
               >出行日期（可选，仅用于核实开放）<input
                 id="trip-date"
@@ -232,6 +232,7 @@
           <div class="route-toolbar">
             <button class="outline" id="edit-route-plan">
               开始排序 / 调整 Day N</button
+            ><button class="outline" data-go="favorites">从我的收藏选入</button
             ><button class="outline" id="supplement-places">补充沿途地点</button
             ><button class="outline" id="open-session">打开原生会话</button
             ><button class="outline" id="calculate-driving">核算驾车路段</button
@@ -250,7 +251,7 @@
             <button class="outline" id="agent-html-route">
               和 Agent 定制 HTML 路书
             </button>
-            <button class="primary" id="archive-plan">保存到路书档案 →</button>
+            <button class="primary" id="archive-plan">保存到路书浏览 →</button>
             <span id="distance-total"></span>
           </div>
           <div class="soft-note">
@@ -259,12 +260,7 @@
           </div>
         </section>
         <section id="favorites-page" class="page" hidden>
-          <div class="panel-head">
-            <div>
-              <h2>我的收藏</h2>
-              <p>收藏、参观记录和笔记保存在你选择的本地资料目录。</p>
-            </div>
-          </div>
+          <div class="favorites-context"><p id="favorites-trip-context"></p><button class="primary" data-go="route">去设计路书 →</button></div>
           <div class="filters">
             <label
               >地点类别<select id="favorite-kind">
@@ -282,16 +278,16 @@
               </select></label
             ><button class="outline" id="manual-place">＋ 手动添加</button>
           </div>
-          <div class="recommendations">
-            <p>在当前目的地附近，补充旅行的另一面</p>
+          <details class="recommendations">
+            <summary>找些新的收藏 · 美食 / 景点 / Citywalk</summary>
             <div class="filters" id="recommend-tags"></div>
-          </div>
+          </details>
           <div id="favorites-list"></div>
         </section>
         <section id="results-page" class="page" hidden>
           <div class="panel-head">
             <div>
-              <h2>路书档案</h2>
+              <h2>路书浏览</h2>
               <p>导出文件、Agent路书与核实候选，留在同一个地方回顾。</p>
             </div>
           </div>
@@ -302,7 +298,7 @@
               登记 Agent 结果
             </button>
           </div>
-          <div class="archive-filters" aria-label="筛选路书档案">
+          <div class="archive-filters" aria-label="筛选路书浏览">
             <label
               >档案范围<select id="archive-scope">
                 <option value="all">全部旅行</option>
@@ -313,9 +309,12 @@
               >城市<input id="archive-city" placeholder="筛选目的地" /></label
             ><label
               >状态<select id="archive-status">
-                <option value="">全部</option>
+                <option value="">最近路书</option>
+                <option value="archived">已存档</option>
+                <option value="all">全部路书</option>
                 <option value="draft">待编排</option>
                 <option value="planned">已编排</option>
+                <option value="deleted">已删除</option>
               </select></label
             >
           </div>
@@ -413,7 +412,6 @@
             </p>
           </details>
         </section>
-        <div class="seasonal-corner" aria-hidden="true"></div>
       </main>
     </div>
     <dialog id="detail"><div id="detail-content"></div></dialog>

@@ -77,7 +77,7 @@ try {
     !page.includes("博物馆清单")
   )
     throw Error("Extracted package smoke check failed");
-  for (const [path, type] of [["song.css", "text/css"], ["assets/song/pushou-ring.svg", "image/svg+xml"]]) {
+  for (const [path, type] of [["song.css", "text/css"], ["assets/song/pushou-ring.svg", "image/svg+xml"], ["assets/song/paintings/orchid-spring.png", "image/png"]]) {
     const asset = await fetch(base + "/workbench/find-museum/" + path);
     if (!asset.ok || !asset.headers.get("content-type")?.includes(type))
       throw Error("Packaged appearance asset missing: " + path);

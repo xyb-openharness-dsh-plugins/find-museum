@@ -77,3 +77,9 @@ SQLite是事实源，input和route.json可重建；Agent直接改快照不更新
 roadbook_check(id,roadbook_id,payload,created_at)记录一次查询的POI/开放时间/天气/失败和来源。查询结果本身不是当前事实；用户采纳后更新地点常规时间及来源，在同一路线下保存新的冻结路书。30分钟后须重新核实。旧版本、用户笔记和当前规划不覆盖。
 
 input/HTML-ROADBOOK.md与input/selected-roadbook.json是指定版本的Agent任务上下文。output/roadbook-<id>.json为可重建的公开快照，数据库保存私有事实和版本索引。直接写入output不等于登记结果。
+
+## 迁移7：路书管理状态
+
+roadbook_state(roadbook_id主键外键,status,updated_at)，status限定active/archived/deleted。缺记录默认active。管理状态与冻结snapshot.status(draft/planned)分开，不改content_hash和旅行revision。迁移前VACUUM INTO生成一致备份，事务建表/写账本。
+
+删除仅标记deleted，可从已删除恢复；不删除附件文件、收藏、旅行或其他版本。存档可移回active。明确重新保存完全相同内容会恢复同一版本active，继续保持内容去重。修改走恢复草稿→编辑→保存新版本，不原位更新旧snapshot。

@@ -647,34 +647,74 @@ body.large[data-theme="song"] .tabs button {
 /* The page masthead already names the archive. Keep a single heading. */
 [data-theme="song"] #results-page > .panel-head { display: none; }
 
-/* Four Gentlemen: an in-flow lower-right vignette, never over controls. */
+/* Generated Song-style paintings belong in the first-screen masthead. */
 .seasonal-corner { display: none; }
-[data-theme="song"] .seasonal-corner {
+[data-theme="song"] .intro {
+  position: relative;
+  isolation: isolate;
+  min-height: 236px;
+  padding-right: 230px;
+  box-sizing: border-box;
+}
+[data-theme="song"] .intro > div:not(.seasonal-corner) { position: relative; z-index: 1; }
+[data-theme="song"] .intro #about-data {
+  position: relative; right: auto; top: auto; z-index: 2; margin-top: 12px;
+}
+[data-theme="song"] .intro .seasonal-corner {
   display: block;
-  order: 8;
-  align-self: stretch;
-  height: 256px;
-  margin-top: 32px;
+  position: absolute;
+  right: 8px; bottom: 0;
+  width: 215px; height: 225px;
   pointer-events: none;
   user-select: none;
-  background: url("/workbench/find-museum/assets/song/orchid-spring.svg") right bottom / 240px 256px no-repeat;
-  opacity: .19;
+  z-index: 0;
+  background: url("/workbench/find-museum/assets/song/paintings/orchid-spring.png") right bottom / contain no-repeat;
+  opacity: .38;
 }
-[data-theme="song"][data-page="route"] .seasonal-corner {
-  background-image: url("/workbench/find-museum/assets/song/bamboo-summer.svg");
+[data-theme="song"][data-page="route"] .intro .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/paintings/bamboo-summer.png");
 }
-[data-theme="song"][data-page="favorites"] .seasonal-corner {
-  background-image: url("/workbench/find-museum/assets/song/chrysanthemum-autumn.svg");
+[data-theme="song"][data-page="favorites"] .intro .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/paintings/chrysanthemum-autumn.png");
 }
-[data-theme="song"][data-page="results"] .seasonal-corner {
-  background-image: url("/workbench/find-museum/assets/song/plum-winter.svg");
+[data-theme="song"][data-page="results"] .intro .seasonal-corner {
+  background-image: url("/workbench/find-museum/assets/song/paintings/plum-winter.png");
 }
+.favorites-context { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 28px; }
+.favorites-context p { margin: 0; color: var(--muted); line-height: 1.8; }
+.favorite-card { border-bottom: 1px solid var(--line); padding: 28px 0; }
+.favorite-main { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.favorite-main h3 { margin: 12px 0 8px; font-size: 22px; font-weight: 500; }
+.favorite-status { color: var(--muted); margin-left: 14px; font-size: 14px; }
+.favorite-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.favorite-extra { margin-top: 16px; background: transparent; padding: 0; border: 0; }
+.favorite-extra summary { color: var(--muted); font-size: 14px; cursor: pointer; }
+.favorite-extra label { display: flex; align-items: center; gap: 8px; margin: 16px 0; }
+.favorite-extra textarea { display: block; width: 100%; box-sizing: border-box; min-height: 76px; margin-top: 12px; }
 @media (max-width: 600px) {
-  [data-theme="song"] .seasonal-corner {
-    height: 180px;
-    margin-top: 24px;
-    background-size: 169px 180px;
-    opacity: .16;
-  }
+  [data-theme="song"] .intro { min-height: 210px; padding-right: 110px; }
+  [data-theme="song"] .intro .seasonal-corner { width: 130px; height: 170px; right: -6px; bottom: 0; opacity: .28; }
+  [data-theme="song"] .intro #about-data { position: relative; top: auto; right: auto; margin-top: 14px; align-self: flex-start; }
+  .favorite-main, .favorites-context { flex-wrap: wrap; gap: 16px; }
+  .favorite-actions { width: 100%; justify-content: space-between; }
 }
 @media print { .seasonal-corner { display: none !important; } }
+
+.roadbook-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+.roadbook-title { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+.roadbook-title h3 { margin: 0; font-size: 22px; font-weight: 500; overflow-wrap: anywhere; }
+.version-note { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.roadbook-summary p { margin: 10px 0 6px; color: var(--muted); font-size: 15px; }
+.roadbook-summary time { font: 12px/1.6 system-ui,sans-serif; color: var(--muted); }
+.roadbook-actions { display: flex; align-items: center; gap: 16px; }
+.roadbook-more { position: relative; }
+.roadbook-more summary { cursor: pointer; color: var(--muted); padding: 12px 0; font-size: 14px; list-style: none; white-space: nowrap; }
+.roadbook-more summary::-webkit-details-marker { display: none; }
+.roadbook-menu { position: absolute; top: 100%; right: 0; min-width: 142px; background: var(--white,#faf9f3); border: 1px solid var(--line); padding: 8px; z-index: 5; border-radius: 6px; }
+.roadbook-menu button { display: block; width: 100%; text-align: left; padding: 12px; white-space: nowrap; }
+.roadbook-menu .danger { color: #9a5c4e; border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .roadbook-row { grid-template-columns: minmax(0,1fr); gap: 12px; padding: 22px 0; } .roadbook-actions { justify-content: flex-end; } }
+/* Secondary pages keep a shorter masthead so the working list appears sooner. */
+[data-theme="song"]:not([data-page="discover"]) .intro { min-height: 180px; padding-top: 24px; padding-bottom: 20px; }
+[data-theme="song"]:not([data-page="discover"]) .intro #about-data { display: none; }
+[data-theme="song"]:not([data-page="discover"]) .intro .seasonal-corner { height: 170px; width: 170px; }

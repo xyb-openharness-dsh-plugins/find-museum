@@ -51,13 +51,11 @@ for (const name of [
   "cloud-scroll",
   "pushou-ring",
   "lotus-bowl",
-  "orchid-spring",
-  "bamboo-summer",
-  "chrysanthemum-autumn",
-  "plum-winter",
 ])
   assets["/workbench/find-museum/assets/song/" + name + ".svg"] =
     "assets/song/" + name + ".svg";
+for (const name of ["orchid-spring", "bamboo-summer", "chrysanthemum-autumn", "plum-winter"])
+  assets["/workbench/find-museum/assets/song/paintings/" + name + ".png"] = "assets/song/paintings/" + name + ".png";
 export const routes = [
   ...Object.keys(assets),
   ...[
@@ -384,6 +382,7 @@ export function createService({ amap = amapQuery } = {}) {
             ".mjs": "text/javascript; charset=utf-8",
             ".css": "text/css; charset=utf-8",
             ".svg": "image/svg+xml",
+            ".png": "image/png",
           }[extname(file)];
         res.writeHead(200, {
           "content-type": type,
@@ -810,6 +809,13 @@ export function createService({ amap = amapQuery } = {}) {
             .roadbooks()
             .find((a) => a.id === p.id);
         if (!a) fail("档案不存在", 404);
+        if (p.action !== undefined) {
+          const states = { archive: "archived", restore: "active", delete: "deleted" };
+          if (!Object.hasOwn(states, p.action)) fail("路书操作无效");
+          trip(a.trip_id);
+          store.setRoadbookState(a.id, states[p.action]);
+          return json(res, 200, { roadbooks: store.roadbooks() });
+        }
         const t = trip(a.trip_id);
         if (t.revision !== p.revision) throw new RevisionConflict();
         const old = a.snapshot,

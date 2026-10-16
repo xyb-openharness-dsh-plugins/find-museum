@@ -260,6 +260,8 @@ function mutate(update) {
     });
     if (trip?.id === id) {
       trip = r.trip;
+      boot.trips = boot.trips.map(t => t.id === trip.id ? trip : t);
+      renderProjects();
       $("#driving-results").textContent = "计划已更新，请重新核算驾车路段。";
       $("#save-state").textContent = r.warning || "已保存到本机";
       refresh();
@@ -558,13 +560,13 @@ function showTab(t) {
       : {
           route: "设计路书",
           favorites: "我的收藏",
-          results: "路书档案",
+          results: "路书浏览",
           data: "数据配置",
         }[t];
   $(".intro-note").textContent = {
     discover: "先选馆，再把喜欢的地方串成路书。",
     route: "先安排 Day N，再留出交通与休息的余地。",
-    favorites: "想去与去过，都留在自己的旅行札记里。",
+    favorites: "收藏喜欢的地方，再选入这一次路书。",
     results: "按版本回顾行程，也可交给 Agent 继续完善。",
     data: "连接状态一目了然，详细配置按需展开。",
   }[t];
@@ -600,6 +602,7 @@ function renderRoute() {
     '<div class="empty">第一步只收集想去的馆，不限制时长、天数或顺序。去发现页面搜索并加入清单。</div>';
   $("#selection-total").textContent =
     (trip?.selections?.length || 0) + "处已收集 · " + rr.length + "处已编排";
+  $("#trip-title").value = trip?.title || "";
   $("#trip-date").value = trip?.settings.date || "";
   $("#trip-mode").value = trip?.settings.mode || "尚未决定";
   $("#route-list").innerHTML =
@@ -631,28 +634,21 @@ function renderRoute() {
     `${rr.length}处地点 · 同日相邻直线合计${km.toFixed(1)}km（非路程）`;
 }
 function renderFavorites() {
-  $("#favorites-list").innerHTML =
-    boot.favorites
-      .filter(
-        (f) =>
-          !$("#favorite-status").value ||
-          (f.visited ? "visited" : "wish") === $("#favorite-status").value,
-      )
-      .filter(
-        (f) =>
-          !$("#favorite-kind").value ||
-          (boot.venues.find((v) => v.id === f.id)?.kind || "museum") ===
-            $("#favorite-kind").value,
-      )
-      .map((f) => {
-        const v = boot.venues.find((v) => v.id === f.id);
-        return v
-          ? card(v) +
-              `<div class="favorite-extra"><label><input type="checkbox" data-visited="${esc(v.id)}" ${f.visited ? "checked" : ""}> 已到访</label><textarea class="favorite-note" data-note="${esc(v.id)}" aria-label="${esc(v.name)}笔记" placeholder="记下感兴趣的展品或参观感受">${esc(f.note || "")}</textarea></div>`
-          : "";
-      })
-      .join("") || '<div class="empty">收藏的馆和参观笔记会保存在本机。</div>';
+  const selection = trip?.selections || draftSelection.map(v => v.id);
+  $("#favorites-trip-context").textContent = trip
+    ? `当前路书：${trip.title} · 已选 ${selection.length} 处。加入后到「设计路书」排序。`
+    : "尚未选择旅行；可以先暂存地点，再去设计路书保存。";
+  $("#favorites-list").innerHTML = boot.favorites
+    .filter(f => !$("#favorite-status").value || (f.visited ? "visited" : "wish") === $("#favorite-status").value)
+    .filter(f => !$("#favorite-kind").value || (boot.venues.find(v => v.id === f.id)?.kind || "museum") === $("#favorite-kind").value)
+    .map(f => {
+      const v = boot.venues.find(v => v.id === f.id);
+      if (!v) return "";
+      const selected = selection.includes(v.id);
+      return `<article class="favorite-card"><div class="favorite-main"><div><span class="tag">${esc(placeKinds[v.kind || "museum"])}</span><span class="favorite-status">${f.visited ? "去过" : "想去"}</span><h3><button class="card-detail" data-detail="${esc(v.id)}">${esc(v.name)}</button></h3><p class="micro">${esc(v.city || v.address || "地点待补充")}</p></div><div class="favorite-actions"><button class="${selected ? "outline" : "primary"}" data-add="${esc(v.id)}" aria-pressed="${selected}" title="${selected ? "再次点击从当前路书移出，保留收藏" : "添加到当前路书清单"}">${selected ? "✓ 已加入 · 移出" : "+ 添加到路书"}</button><button class="quiet" data-favorite="${esc(v.id)}" aria-label="取消收藏${esc(v.name)}">♥</button></div></div><details class="favorite-extra"><summary>参访记录${f.note ? " · 有笔记" : "与笔记"}</summary><label><input type="checkbox" data-visited="${esc(v.id)}" ${f.visited ? "checked" : ""}> 已到访</label><textarea class="favorite-note" data-note="${esc(v.id)}" aria-label="${esc(v.name)}笔记" placeholder="记下感兴趣的展品或参观感受">${esc(f.note || "")}</textarea></details></article>`;
+    }).join("") || '<div class="empty"><p>把喜欢的地方收藏在这里，随时选入路书。</p><button class="outline" data-go="discover">去发现博物馆 →</button></div>';
 }
+
 function renderResults() {
   renderRoadbookList();
   $("#candidate-list").innerHTML = boot.candidates
@@ -841,7 +837,7 @@ async function exportTrip(format) {
   a.href = r.downloadUrl;
   a.download = "";
   a.click();
-  toast("真实文件已保存到output，并登记到路书档案");
+  toast("真实文件已保存到output，并登记到路书浏览");
 }
 function durationOptions(minutes, kind = "museum") {
   return [
@@ -1237,6 +1233,7 @@ document.addEventListener(
     if (d.detail) await detail(d.detail);
     if (d.recommend) await recommendPlaces(d.recommend);
     if (d.archiveOpen) openRoadbook(d.archiveOpen);
+    if (d.archiveManage) await manageRoadbook(d.archiveManage, d.action);
     if (d.checkExport) {
       const r = await api("/check-apply", {
         method: "POST",
@@ -1322,30 +1319,36 @@ document.addEventListener(
 );
 
 function renderRoadbookList() {
-  $("#roadbook-list").innerHTML =
-    (boot.roadbooks || [])
-      .filter(
-        (a) =>
-          !$("#archive-city").value.trim() ||
-          (a.snapshot.destination || "").includes(
-            $("#archive-city").value.trim(),
-          ),
-      )
-      .filter(
-        (a) =>
-          !$("#archive-status").value ||
-          a.snapshot.status === $("#archive-status").value,
-      )
-      .filter(
-        (a) => $("#archive-scope").value === "all" || a.trip_id === trip?.id,
-      )
-      .map(
-        (a) =>
-          `<article class="artifact-row"><h3>${esc(a.snapshot.title)}</h3><p>${esc(a.snapshot.destination || "目的地待定")} · 第 ${a.version} 版 · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${(a.snapshot.stops.length ? a.snapshot.stops : a.snapshot.selections).length}处</p><small>${esc(a.created_at)}</small><button class="outline" data-archive-open="${esc(a.id)}">浏览路书 →</button></article>`,
-      )
-      .join("") ||
-    '<div class="empty archive-empty"><h3>留下一份自己的行记</h3><p>设计好清单或 Day N 后，保存第一版路书。</p><button class="outline" data-go="route">去设计路书 →</button></div>';
+  const stateFilter = $("#archive-status").value;
+  $("#roadbook-list").innerHTML = (boot.roadbooks || [])
+    .filter(a => !$("#archive-city").value.trim() || (a.snapshot.destination || "").includes($("#archive-city").value.trim()))
+    .filter(a => {
+      const state=a.recordState || "active";
+      if (["archived","deleted"].includes(stateFilter)) return state === stateFilter;
+      if (stateFilter === "all") return state !== "deleted";
+      return state === "active" && (!stateFilter || a.snapshot.status === stateFilter);
+    })
+    .filter(a => $("#archive-scope").value === "all" || a.trip_id === trip?.id)
+    .map(a => {
+      const state=a.recordState || "active", rows=a.snapshot.stops.length ? a.snapshot.stops : a.snapshot.selections;
+      const when=new Date(a.created_at), date=Number.isNaN(+when) ? "时间待补" : when.toLocaleString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+      return `<article class="roadbook-row"><div class="roadbook-summary"><div class="roadbook-title"><h3>${esc(a.snapshot.title)}</h3><span class="version-note">第 ${a.version} 版</span>${state === "archived" ? '<span class="tag">已存档</span>' : state === "deleted" ? '<span class="tag">已删除</span>' : ""}</div><p>${esc(a.snapshot.destination || "目的地待定")} · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${rows.length} 处</p><time datetime="${esc(a.created_at)}">${esc(date)}</time></div><div class="roadbook-actions">${state === "deleted" ? `<button class="outline" data-archive-manage="${esc(a.id)}" data-action="restore">恢复路书</button>` : `<button class="outline" data-archive-open="${esc(a.id)}">浏览 →</button><details class="roadbook-more"><summary aria-label="${esc(a.snapshot.title)}第${a.version}版更多操作">更多 ···</summary><div class="roadbook-menu"><button class="quiet" data-archive-continue="${esc(a.id)}">修改路书</button><button class="quiet" data-archive-manage="${esc(a.id)}" data-action="${state === "archived" ? "restore" : "archive"}">${state === "archived" ? "移回最近" : "存档"}</button><button class="quiet danger" data-archive-manage="${esc(a.id)}" data-action="delete">删除</button></div></details>`}</div></article>`;
+    }).join("") || `<div class="empty archive-empty"><h3>${stateFilter ? "这里还没有路书" : "留下一份自己的行记"}</h3><p>${stateFilter ? "可以切换显示范围查看其他路书。" : "设计好清单或 Day N 后，保存第一版路书。"}</p><button class="outline" data-go="route">去设计路书 →</button></div>`;
 }
+async function manageRoadbook(id, action) {
+  const a=archiveById(id);
+  const apply=async()=>{
+    const r=await api("/roadbooks",{method:"PUT",body:JSON.stringify({id,action})});
+    boot.roadbooks=r.roadbooks;
+    renderRoadbookList();
+    toast(action === "delete" ? "已移到「已删除」，可恢复；导出文件保留" : action === "archive" ? "已存档，可在「已存档」中浏览" : "已移回最近路书");
+  };
+  if(action === "delete") {
+    $("#detail").close();
+    dialog("删除这份路书？",`<p>${esc(a.snapshot.title)} · 第 ${a.version} 版</p><p>将移到「已删除」，可以恢复。不会删除其他版本、当前设计、收藏或已导出的文件。</p><button type="submit" class="primary">确认删除</button>`,apply);
+  } else await apply();
+}
+
 function archiveById(id) {
   const a = boot.roadbooks?.find((a) => a.id === id);
   if (!a) throw new Error("路书不存在，请重新读取");
@@ -1354,7 +1357,7 @@ function archiveById(id) {
 function openRoadbook(id) {
   const a = archiveById(id);
   $("#detail-content").innerHTML =
-    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText({ ...a.snapshot, preflight: undefined }))}</div>${a.snapshot.preflight ? `<details class="archive-verification"><summary>天气与参访核实 · ${esc(a.snapshot.preflight.checkedAt)}</summary>${preflightMarkup(a.snapshot.preflight)}</details>` : ""}<div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-html-agent="${esc(id)}">和 Agent 定制 HTML</button><button class="outline" data-archive-continue="${esc(id)}">继续设计</button></div><details><summary>附件与 Agent 完善结果</summary>${
+    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText({ ...a.snapshot, preflight: undefined }))}</div>${a.snapshot.preflight ? `<details class="archive-verification"><summary>天气与参访核实 · ${esc(a.snapshot.preflight.checkedAt)}</summary>${preflightMarkup(a.snapshot.preflight)}</details>` : ""}<div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-html-agent="${esc(id)}">和 Agent 定制 HTML</button><button class="outline" data-archive-continue="${esc(id)}">修改路书</button></div><details><summary>附件与 Agent 完善结果</summary>${
       (boot.artifacts || [])
         .filter(
           (x) => x.payload.roadbookId === id && x.kind !== "roadbook-snapshot",
@@ -1483,8 +1486,8 @@ async function continueArchive(id) {
   $("#detail").close();
   if (trip?.id !== a.trip_id) await openTrip(a.trip_id);
   dialog(
-    "从此版本继续设计",
-    '<p>将用所选版本恢复此旅行的设计草稿。旧路书版本保留；尚未存档的草稿请先保存。</p><button type="submit" class="primary">恢复草稿并继续</button>',
+    "修改这份路书",
+    '<p>将用所选版本恢复此旅行的设计草稿。旧路书版本保留；尚未存档的草稿请先保存。</p><button type="submit" class="primary">进入设计并修改</button>',
     async () => {
       const r = await api("/roadbooks", {
         method: "PUT",
@@ -1698,6 +1701,7 @@ $("#import-candidates").onclick = safe(importCandidates);
 $("#import-candidates-results").onclick = safe(importCandidates);
 $("#save-roadbook").onclick = safe(saveRoadbook);
 $("#save-roadbook-results").onclick = safe(saveRoadbook);
+$("#trip-title").onchange = safe((e) => mutate((t) => { t.title = e.target.value.trim(); }));
 $("#trip-date").onchange = safe((e) =>
   mutate((t) => {
     t.settings.date = e.target.value;

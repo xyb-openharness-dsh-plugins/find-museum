@@ -737,3 +737,25 @@ test("核实信息生成同路线新版本并回顾；旧版本与草稿revision
     "amap",
   );
 });
+
+test("路书存档/删除/恢复持久化，冻结内容与设计revision不变", async(t)=>{
+ const f=await fixture(t), original=await configured(f);
+ const trip=(await f.req("selection","PUT",{tripId:original.id,inputRevision:original.revision,ids:[stops[0].id]})).body.trip;
+ const book=(await f.req("roadbooks","POST",{tripId:trip.id,revision:trip.revision})).body.roadbook;
+ for(const [action,state] of [["archive","archived"],["delete","deleted"],["restore","active"]]){
+  const r=await f.req("roadbooks","PUT",{id:book.id,action});
+  assert.equal(r.status,200,JSON.stringify(r.body));
+  const b=r.body.roadbooks.find(x=>x.id===book.id);
+  assert.equal(b.recordState,state);assert.deepEqual(b.snapshot,book.snapshot);
+  assert.equal((await f.req("trip?id="+trip.id)).body.trip.revision,trip.revision);
+ }
+ assert.equal((await f.req("roadbooks","PUT",{id:book.id,action:"erase"})).status,400);
+});
+test("四君子生成PNG的宿主资源入口返回真实PNG和正确MIME",async(t)=>{
+ const f=await fixture(t);
+ for(const name of ["orchid-spring","bamboo-summer","chrysanthemum-autumn","plum-winter"]){
+  const r=await fetch(f.base+"/workbench/find-museum/assets/song/paintings/"+name+".png");
+  assert.equal(r.status,200);assert.match(r.headers.get("content-type"),/image\/png/);
+  const bytes=Buffer.from(await r.arrayBuffer());assert.equal(bytes.subarray(1,4).toString(),"PNG");
+ }
+});

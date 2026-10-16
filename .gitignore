@@ -17,3 +17,5 @@ local-secrets.json
 _private/
 
 dist/
+
+.playwright-cli/

@@ -204,6 +204,15 @@ TripStore.prototype.prepareBusinessTables = function () {
       throw e;
     }
   }
+  if (!this.db.prepare("SELECT version FROM migration_ledger WHERE version=7").get()) {
+    this.db.prepare("VACUUM INTO ?").run(join(this.root, "trips.pre-v7-" + Date.now() + ".sqlite"));
+    try {
+      this.db.exec(`BEGIN IMMEDIATE;
+      CREATE TABLE roadbook_state(roadbook_id TEXT PRIMARY KEY REFERENCES roadbook_version(id),status TEXT NOT NULL CHECK(status IN ('active','archived','deleted')),updated_at TEXT NOT NULL);
+      INSERT INTO migration_ledger VALUES(7,datetime('now')); COMMIT;`);
+    } catch (e) { this.db.exec("ROLLBACK"); throw e; }
+  }
+
 };
 TripStore.prototype.importPlan = function (t, venues, stops) {
   this.db.exec("BEGIN IMMEDIATE");
@@ -426,7 +435,10 @@ TripStore.prototype.saveRoadbookSnapshot = function (
       "SELECT * FROM roadbook_version WHERE trip_id=? AND input_revision=? AND content_hash=?",
     )
     .get(tripId, inputRevision, hash);
-  if (existing) return { ...existing, snapshot: JSON.parse(existing.snapshot) };
+  if (existing) {
+    this.setRoadbookState(existing.id, "active");
+    return { ...existing, recordState: "active", snapshot: JSON.parse(existing.snapshot) };
+  }
   const id = randomUUID(),
     version = this.db
       .prepare(
@@ -466,7 +478,13 @@ TripStore.prototype.checks = function () {
 };
 TripStore.prototype.roadbooks = function () {
   return this.db
-    .prepare("SELECT * FROM roadbook_version ORDER BY created_at DESC")
+    .prepare("SELECT v.*,COALESCE(s.status,'active') AS recordState FROM roadbook_version v LEFT JOIN roadbook_state s ON s.roadbook_id=v.id ORDER BY v.created_at DESC")
     .all()
     .map((r) => ({ ...r, snapshot: JSON.parse(r.snapshot) }));
+};
+
+TripStore.prototype.setRoadbookState = function (id, state) {
+  if (!["active", "archived", "deleted"].includes(state)) throw new TypeError("路书状态无效");
+  if (!this.db.prepare("SELECT id FROM roadbook_version WHERE id=?").get(id)) throw new Error("路书不存在");
+  this.db.prepare("INSERT INTO roadbook_state VALUES(?,?,?) ON CONFLICT(roadbook_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at").run(id,state,new Date().toISOString());
 };

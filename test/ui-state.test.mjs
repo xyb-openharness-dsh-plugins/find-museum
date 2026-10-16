@@ -229,5 +229,17 @@ test("打开旅行时标题更新为当前目的地，保留当前Tab", async ()
   assert.equal(f.ids.get("#page-title").textContent,"三门峡，馆里见。");
   f.run('tab="results"');
   await f.run('openTrip("city",false)');
-  assert.equal(f.ids.get("#page-title").textContent,"路书档案");
+  assert.equal(f.ids.get("#page-title").textContent,"路书浏览");
+});
+
+test("导航为发现→设计→浏览→收藏；收藏精简且与当前路书选择联动",()=>{
+ const html=readFileSync(new URL("../public/index.html",import.meta.url),"utf8");
+ assert.deepEqual([...html.matchAll(/data-tab="([^"]+)"/g)].map(m=>m[1]),["discover","route","results","favorites","data"]);
+ const f=fixture();
+ f.run('trip={id:"t",title:"春游",selections:[],stops:[],settings:{}};boot.venues=[{id:"v",name:"测试馆",kind:"museum"}];boot.favorites=[{id:"v",visited:false,note:"保留笔记"}];renderFavorites()');
+ assert.match(f.ids.get("#favorites-list").innerHTML,/添加到路书/);
+ assert.match(f.ids.get("#favorites-list").innerHTML,/保留笔记/);
+ f.run('trip.selections=["v"];renderFavorites()');
+ assert.match(f.ids.get("#favorites-list").innerHTML,/已加入 · 移出/);
+ assert.match(f.ids.get("#favorites-trip-context").textContent,/春游 · 已选 1 处/);
 });

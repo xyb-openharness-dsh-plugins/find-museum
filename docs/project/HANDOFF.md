@@ -1,14 +1,14 @@
-# 当前交接 · 0.2.2
+# 当前交接 · 0.2.3
 
-当前业务代码0.2.2，MIT已由作者明确确认。五个入口：发现博物馆/设计路书/我的收藏/路书档案/数据配置。已实现通用地点、推荐勾选保存、独立类别时长、冻结档案及分享。原型design/prototype-v0.2.html由正式UI生成，设计服务复用API；0.1历史文件保留。
+当前业务代码0.2.3，MIT已由作者明确确认。五个入口：发现博物馆/设计路书/我的收藏/路书档案/数据配置。已实现通用地点、推荐勾选保存、独立类别时长、冻结档案及分享。原型design/prototype-v0.2.html由正式UI生成，设计服务复用API；0.1历史文件保留。
 
 加入清单为切换操作，第二次点击移出；暂存与保存一致。移出已编排地点也移出该旅行站点，旧收藏和冻结档案保留。写队列根据最新状态切换，不因连续点击产生重复。
 
 运行：npm run dev默认4390；独立验收用FIND_MUSEUM_DEV_PORT=4391和明确的已确认FIND_MUSEUM_DEV_ROOT。服务实例独立，不覆盖另一资料根。现4390/4391已启动最新版；原用户两份旅行和迁移前备份均保留。
 
-数据：5535条2019名录+苏州5馆址为基线。迁移1–6；通用Place复用原覆盖表的校验JSON，ID不改。SQLite与Key/用户文件不进入Git。高德Key仅在~/.config/find-museum/local-secrets.json，新用户仍需自配。
+数据：5535条2019名录+苏州5馆址为基线。迁移1–7；通用Place复用原覆盖表的校验JSON，ID不改。SQLite与Key/用户文件不进入Git。高德Key仅在~/.config/find-museum/local-secrets.json，新用户仍需自配。
 
-49测试在Node22.19和内置24.17通过；真实包与安装核对见ACCEPTANCE-0.2.1。已安装0.2.1，但不能声称运行中的Desktop完成热加载。浏览器已部分验收，完整Desktop原生会话和重启恢复待验。不要自行重启宿主。
+52测试在Node22.19和内置24.17通过；真实包与安装核对见ACCEPTANCE-0.2.1。已安装0.2.3，但不能声称运行中的Desktop完成热加载。浏览器已部分验收，完整Desktop原生会话和重启恢复待验。不要自行重启宿主。
 
 市场原始提示词：prompts/MARKET-PUBLISH.md。当前无最终Desktop截图、未提交收录PR。category固定other，PR建议新增旅行；只新增一条YAML。先完成真实宿主验收和截图，再按MARKET-PUBLISH检查。未来上架状态以真实PR及目录为准。
 
@@ -22,3 +22,5 @@
 新版最终包、安装与发布证据见ACCEPTANCE-0.2.1.md；旧版段落仅为历史，不复用为新版实机通过。
 
 0.2.2新增春兰/夏竹/秋菊/冬梅页尾线描，规范和资源路由已同步；4390/4391开发服务已更新，原数据保留。安装/包证据见ACCEPTANCE-0.2.2.md，Desktop实际加载仍待验证。
+
+0.2.3合并三次输入：生成透明PNG/首屏位置、导航与收藏互通、路书管理紧凑列表。见changes/V0.2.3-PAINTING-AND-ROADBOOK-MANAGEMENT.md。迁移7管理状态独立于冻结内容；软删除可恢复，不清理output。实际生成prompt在assets/song/PAINTING-PROMPTS.md，工具模型未暴露。Chrome扩展阻挡后改用独立Playwright预览，不操作用户标签页；截图output/playwright仅为开发证据，不作市场Desktop截图。

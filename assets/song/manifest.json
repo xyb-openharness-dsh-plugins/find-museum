@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "createdAt": "2026-10-16",
   "assets": [
     {
@@ -139,72 +139,76 @@
       "photographTraced": false
     },
     {
-      "file": "orchid-spring.svg",
-      "name": "春兰 · 四君子",
+      "file": "paintings/orchid-spring.png",
+      "name": "春兰 · 宋式淡彩",
       "season": "spring",
-      "viewBox": "0 0 300 320",
+      "creation": "image-generation",
+      "tool": "image_gen built-in",
+      "model": "not exposed by tool",
+      "transparentBackground": true,
       "suggestedWidthPx": [
-        140,
-        260
+        130,
+        215
       ],
       "decorativeOpacity": [
-        0.14,
-        0.2
+        0.28,
+        0.38
       ],
-      "license": "MIT",
-      "creation": "original-botanical-line-art",
-      "photographTraced": false
+      "promptFile": "PAINTING-PROMPTS.md"
     },
     {
-      "file": "bamboo-summer.svg",
-      "name": "夏竹 · 四君子",
+      "file": "paintings/bamboo-summer.png",
+      "name": "夏竹 · 宋式淡彩",
       "season": "summer",
-      "viewBox": "0 0 300 320",
+      "creation": "image-generation",
+      "tool": "image_gen built-in",
+      "model": "not exposed by tool",
+      "transparentBackground": true,
       "suggestedWidthPx": [
-        140,
-        260
+        130,
+        215
       ],
       "decorativeOpacity": [
-        0.14,
-        0.2
+        0.28,
+        0.38
       ],
-      "license": "MIT",
-      "creation": "original-botanical-line-art",
-      "photographTraced": false
+      "promptFile": "PAINTING-PROMPTS.md"
     },
     {
-      "file": "chrysanthemum-autumn.svg",
-      "name": "秋菊 · 四君子",
+      "file": "paintings/chrysanthemum-autumn.png",
+      "name": "秋菊 · 宋式淡彩",
       "season": "autumn",
-      "viewBox": "0 0 300 320",
+      "creation": "image-generation",
+      "tool": "image_gen built-in",
+      "model": "not exposed by tool",
+      "transparentBackground": true,
       "suggestedWidthPx": [
-        140,
-        260
+        130,
+        215
       ],
       "decorativeOpacity": [
-        0.14,
-        0.2
+        0.28,
+        0.38
       ],
-      "license": "MIT",
-      "creation": "original-botanical-line-art",
-      "photographTraced": false
+      "promptFile": "PAINTING-PROMPTS.md"
     },
     {
-      "file": "plum-winter.svg",
-      "name": "冬梅 · 四君子",
+      "file": "paintings/plum-winter.png",
+      "name": "冬梅 · 宋式淡彩",
       "season": "winter",
-      "viewBox": "0 0 300 320",
+      "creation": "image-generation",
+      "tool": "image_gen built-in",
+      "model": "not exposed by tool",
+      "transparentBackground": true,
       "suggestedWidthPx": [
-        140,
-        260
+        130,
+        215
       ],
       "decorativeOpacity": [
-        0.14,
-        0.2
+        0.28,
+        0.38
       ],
-      "license": "MIT",
-      "creation": "original-botanical-line-art",
-      "photographTraced": false
+      "promptFile": "PAINTING-PROMPTS.md"
     }
   ]
 }

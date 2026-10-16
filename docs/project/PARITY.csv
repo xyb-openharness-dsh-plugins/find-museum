@@ -18,3 +18,6 @@ song-theme,宋韵外观与经典保留,独立song.css与本机外观切换,700/3
 song-assets,传统元素透明SVG,8份原创意象与尺寸清单,XML解析和包内SVG读取,不是实物测绘或自动照片转线稿
 roadbook-preflight,导出前核实与天气±1天,真实高德详情与天气及新版本采纳,49项测试和真实2馆4日查询,临时闭馆公告仍需馆方核实
 html-personalization,Agent互动定制国风路书,冻结快照与input任务合同,API隔离测试与真实HTML样稿,原生草稿和手动结果登记待实机验收
+generated-botanicals,生成透明淡彩四君子首屏呈现,PNG替换手绘SVG与标题区定位,真实alpha及780px浏览器截图,具体模型未暴露不冒称gpt-image-2
+roadbook-management,浏览存档修改删除,薄线列表更多菜单与迁移7状态表,52项回归及浏览器存档删除恢复,删除可恢复不清理导出文件
+favorites-route-link,收藏与设计互通,精简类型状态CTA和双向入口,状态测试及浏览器当前旅行与已加入展示,完整多设备交互待验

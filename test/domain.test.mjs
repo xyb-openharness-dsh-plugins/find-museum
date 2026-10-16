@@ -175,7 +175,7 @@ test("迁移6保留既有档案内容和ID，同路线资料新版本不改旅�
   const f = await storeFixture(t), trip = f.db.create("迁移6验收");
   f.db.prepareBusinessTables();
   const snapshot={title:"旧版",revision:trip.revision,selections:[],stops:[]};
-  f.db.db.exec(`DROP TABLE roadbook_check; DROP TABLE roadbook_version; DELETE FROM migration_ledger WHERE version=6;
+  f.db.db.exec(`DROP TABLE roadbook_state; DROP TABLE roadbook_check; DROP TABLE roadbook_version; DELETE FROM migration_ledger WHERE version>=6;
     CREATE TABLE roadbook_version(id TEXT PRIMARY KEY,trip_id TEXT NOT NULL REFERENCES trip(id),version INTEGER NOT NULL,input_revision INTEGER NOT NULL,snapshot TEXT NOT NULL,created_at TEXT NOT NULL,UNIQUE(trip_id,version),UNIQUE(trip_id,input_revision));`);
   f.db.db.prepare("INSERT INTO roadbook_version VALUES(?,?,?,?,?,?)").run("legacy-book",trip.id,1,trip.revision,JSON.stringify(snapshot),"2026-10-15T00:00:00Z");
   let db=f.reopen();
