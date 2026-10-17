@@ -55,7 +55,7 @@
               <option value="song">宋韵</option>
               <option value="classic">经典</option>
             </select></label
-          ><button class="quiet" id="large-font">大字</button>
+          ><button class="quiet" id="large-font" type="button" aria-pressed="false">大字：关</button>
         </header>
         <label class="mobile-nav"
           >工作台页面<select id="mobile-page">
@@ -82,7 +82,7 @@
           <details class="workflow-help">
             <summary aria-label="工作台三步怎么用" title="工作台三步怎么用">💡</summary>
             <div class="workflow-popover" role="note" aria-label="工作台基本操作">
-              <h2>工作台，三步开始</h2>
+              <div class="workflow-popover-head"><h2>工作台，三步开始</h2><button type="button" class="quiet workflow-help-close" aria-label="关闭操作说明">关闭 ×</button></div>
               <ol>
                 <li><strong>搜索并建立博物馆清单</strong><span>先按目的地寻找博物馆，逐个加入清单；这一步不需要安排日期。</span></li>
                 <li><strong>排序与安排 Day N</strong><span>调整参观顺序并分配到不同日期。博物馆建议预留 4–8 小时深度参观。</span></li>
@@ -109,7 +109,13 @@
           </div>
           <div class="seasonal-corner" aria-hidden="true"></div>
         </section>
-        <section class="searchbar">
+        <section class="search-start" aria-labelledby="search-start-title">
+          <div class="search-start-copy">
+            <span class="step-kicker">第一步 · 找到想去的馆</span>
+            <h2 id="search-start-title">从目的地开始，先把清单选出来</h2>
+            <p>定位周边名录，或直接用高德搜馆；加入清单后，一步进入顺序与参观时长安排。</p>
+          </div>
+          <section class="searchbar">
           <label class="destination"
             >目的地<input
               id="city"
@@ -122,12 +128,13 @@
               id="query"
               aria-label="搜索馆名、特色或城市"
               placeholder="馆名、特色或城市，例如：青铜、常熟" /></label
-          ><button class="primary" id="search-button">定位城市</button>
+          ><button class="outline" id="search-button">定位名录</button>
+          <button class="primary" id="online-search">高德搜馆 →</button>
+          </section>
         </section>
         <section id="discover-page" class="page">
           <div class="filters">
-            <button class="chip" id="online-search">高德搜馆 ↗</button
-            ><button class="chip selected" data-filter="all">全部馆</button
+            <button class="chip selected" data-filter="all">全部馆</button
             ><button class="chip" data-filter="county">县域与小馆</button
             ><button class="chip" data-filter="theme">特色专题</button
             ><label
@@ -200,13 +207,16 @@
           ><button
             class="primary"
             id="discovery-design"
-            data-go="route"
             disabled
           >
             去设计路书 →
           </button>
         </div>
         <section id="route-page" class="page" hidden>
+          <div class="route-empty-next" id="route-empty-next" hidden>
+            <p>先选好想去的博物馆，再回来安排参观顺序和时长。</p>
+            <button class="primary" data-go="discover">① 去发现博物馆 →</button>
+          </div>
           <details class="collection-panel">
             <summary>本次地点清单</summary>
             <div class="section-heading">
@@ -328,6 +338,7 @@
               </select></label
             >
           </div>
+          <p class="archive-current-trip" id="archive-current-trip" role="status"></p>
           <div id="roadbook-list"></div>
           <div id="candidate-list"></div>
           <div id="results-list"></div>

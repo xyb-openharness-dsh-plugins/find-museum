@@ -1107,6 +1107,62 @@ body.large .micro {
   font-weight: 600;
   outline-offset: 1px;
 }
+.search-start {
+  order: 4;
+  margin: 8px 0 20px;
+  padding: 20px 22px;
+  border: 1px solid #b9cbbd;
+  border-radius: 15px;
+  background: #e2ebe1;
+}
+.search-start-copy {
+  margin: 0 0 14px;
+}
+.search-start-copy .step-kicker {
+  color: #426d5d;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 1px;
+}
+.search-start-copy h2 {
+  margin: 5px 0;
+  color: #304b42;
+  font-size: 19px;
+}
+.search-start-copy p {
+  margin: 0;
+  color: #5f7269;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.search-start .searchbar {
+  order: 0;
+  margin: 0;
+  background: #f8f8f1;
+  border-color: #c5d3c8;
+  box-shadow: none;
+}
+.search-start .searchbar #online-search {
+  font-weight: 650;
+}
+.workspace-choice {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  border: 1px solid #d2ddd3;
+  border-radius: 10px;
+  background: #f5f7f0;
+}
+.workspace-choice strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+.workspace-choice span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .catalog-section {
   margin-top: 24px;
   padding-top: 16px;
@@ -1354,6 +1410,10 @@ dialog {
   .searchbar {
     flex-wrap: wrap;
   }
+  .search-start .searchbar #online-search,
+  .search-start .searchbar #search-button {
+    flex: 1;
+  }
   .search {
     min-width: 160px;
   }
@@ -1367,6 +1427,21 @@ dialog {
 @media (max-width: 560px) {
   .business {
     padding: 0 14px 24px;
+  }
+  .search-start {
+    padding: 15px;
+  }
+  .search-start-copy h2 {
+    font-size: 17px;
+  }
+  .search-start .searchbar .destination,
+  .search-start .searchbar .search {
+    flex-basis: 100%;
+  }
+  .search-start .searchbar .destination {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
   }
   .plan-row {
     grid-template-columns: 20px minmax(0, 1fr);
@@ -1407,6 +1482,7 @@ dialog {
 }
 
 .workflow-help-row {
+  order: 1;
   display: flex;
   justify-content: flex-end;
   position: relative;
@@ -1445,6 +1521,8 @@ dialog {
   color: var(--ink);
 }
 .workflow-popover h2 { margin: 0 0 14px; font-size: 17px; }
+.workflow-popover-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.workflow-help-close { min-height: 40px; }
 .workflow-popover ol { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; counter-reset: workflow; }
 .workflow-popover li { display: grid; grid-template-columns: 1fr; gap: 4px; counter-increment: workflow; }
 .workflow-popover li strong::before { content: counter(workflow) " · "; color: var(--accent); }
@@ -1523,6 +1601,12 @@ body {
 .discovery-next[hidden] {
   display: none;
 }
+body[data-page="discover"] #discover-page { padding-bottom: 112px; }
+.discovery-next { scroll-margin-bottom: 120px; }
+.route-empty-next { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 24px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); }
+.route-empty-next p { margin: 0; color: var(--muted); line-height: 1.7; }
+body[data-page="route"] #route-page[data-route-empty="true"] > :not(#route-empty-next) { display: none !important; }
+body[data-page="route"] #route-page[data-route-empty="true"] #route-empty-next[hidden] { display: none !important; }
 .config-section {
   margin: 20px 0;
   padding: 20px;
@@ -1555,6 +1639,23 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.archive-current-trip { margin: -18px 0 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.archive-saved-name { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; }
+.structured-roadbook { max-height: 58vh; padding: 0 2px 16px; white-space: normal; }
+.roadbook-meta,.roadbook-note { color: var(--muted); }
+.roadbook-note { border-left: 2px solid var(--line); padding-left: 12px; }
+.roadbook-day { margin: 26px 0; }
+.roadbook-day > h3 { border-bottom: 1px solid var(--line); padding-bottom: 10px; font-size: 19px; }
+.roadbook-stop { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.roadbook-stop-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+.roadbook-stop-head > span { color: var(--muted); font-size: 14px; }
+.roadbook-stop-head h4 { margin: 0; font-size: 18px; font-weight: 600; }
+.roadbook-stop-head b { margin-left: auto; font-size: 15px; font-weight: 500; }
+.roadbook-address { color: var(--muted); font-size: 14px; }
+.roadbook-stop details { margin-top: 12px; }
+.roadbook-stop details summary { min-height: 40px; display: flex; align-items: center; color: var(--muted); }
+.roadbook-stop details a { overflow-wrap: anywhere; }
+.roadbook-alert { color: #8d4f38; }
 .recommendations {
   padding: 12px 0 24px;
 }
@@ -1594,6 +1695,7 @@ body {
   .projectbar {
     flex-wrap: wrap;
   }
+  .route-empty-next { align-items: stretch; flex-direction: column; }
 }
 
 .museum-card p,
@@ -1633,6 +1735,22 @@ body.large small {
 body.large .tabs button {
   font-size: 17px;
 }
+body.large .state-pill,
+body.large .version-note,
+body.large .roadbook-row time,
+body.large .roadbook-summary > p,
+body.large .archive-current-trip,
+body.large .roadbook-stop-head > span,
+body.large .roadbook-address,
+body.large .roadbook-meta,
+body.large .roadbook-note { font-size: 16px; line-height: 1.6; white-space: normal; }
+body.large .workflow-popover h2,
+body.large .workflow-popover li,
+body.large .workflow-popover li span { font-size: 18px; line-height: 1.7; }
+#large-font[aria-pressed="true"] { color: var(--ink); background: var(--mint); border-radius: 8px; }
+#large-font:focus-visible,
+.workflow-help button:focus-visible,
+.workflow-help summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 479px) {
   .business {
     padding-left: 16px;

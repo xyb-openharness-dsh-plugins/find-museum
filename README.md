@@ -4,6 +4,8 @@
 
 仓库：https://github.com/xyb-openharness-dsh-plugins/find-museum
 
+当前工作台包版本：**0.2.8**。
+
 ## 界面预览
 
 首图为 DSH Desktop v0.2.4 实际界面，展示已展开的💡三步说明；其余截图为工作台其他页面的较早实机参考。点击图片可查看完整截图。地点开放与天气信息是截图时的数据，出行前应重新核实。

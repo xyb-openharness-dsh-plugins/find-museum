@@ -28,13 +28,16 @@ function fixture(options = {}) {
     showModal() {
       this.open = true;
     },
+    getBoundingClientRect() {
+      return { bottom: 1000 };
+    },
     close() {
       this.open = false;
     },
   });
   for (const k of ids.keys()) ids.set(k, element());
   ids.set("#action-form", element());
-  for (const k of [".searchbar", ".workflow-help-row", ".intro-note", ".projectbar"])
+  for (const k of [".searchbar", ".search-start", ".workflow-help-row", ".workflow-help", ".intro-note", ".projectbar"])
     ids.set(k, element());
   const pages = ["discover", "route", "favorites", "results", "data"].map(
     (k) => ({ ...element(), id: k + "-page" }),
@@ -44,7 +47,8 @@ function fixture(options = {}) {
     dataset: { tab: p.id.replace("-page", "") },
   }));
   const storage = new Map();
-  const window = { addEventListener() {} };
+  const listeners = new Map();
+  const window = { addEventListener: (name, fn) => listeners.set(name, fn) };
   const document = {
     querySelector(k) {
       if (!ids.has(k)) throw new Error("Unknown static selector " + k);
@@ -94,7 +98,7 @@ function fixture(options = {}) {
   assert.ok(end > start);
   code = code.slice(0, start) + code.slice(end + 7);
   vm.runInContext(code, ctx);
-  return { run: (s) => vm.runInContext(s, ctx), ids, storage, tabs, pages };
+  return { run: (s) => vm.runInContext(s, ctx), ids, storage, tabs, pages, listeners };
 }
 test("五入口改名与搜索栏可见性，静态ID均能绑定", () => {
   const f = fixture();
@@ -107,6 +111,46 @@ test("五入口改名与搜索栏可见性，静态ID均能绑定", () => {
   assert.equal(f.ids.get("#page-title").textContent, "设计路书");
   assert.equal(f.pages[1].hidden, false);
   assert.equal(f.pages[0].hidden, true);
+});
+test("首页把目的地与高德搜馆收进第一步；转入路书后搜索引导收起", () => {
+  const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.match(html, /第一步 · 找到想去的馆/);
+  assert.match(html, /id="online-search">高德搜馆 →/);
+  assert.doesNotMatch(html.match(/id="discovery-design"[\s\S]{0,100}/)?.[0] || "", /data-go=/);
+  const f = fixture();
+  f.run('showTab("route")');
+  assert.equal(f.ids.get(".search-start").hidden, true);
+  assert.equal(f.ids.get("#discovery-next").hidden, true);
+  f.run('showTab("discover")');
+  assert.equal(f.ids.get(".search-start").hidden, false);
+  assert.equal(f.ids.get("#discovery-next").hidden, true);
+  f.run('trip={id:"t",selections:["m"],stops:[],settings:{}};tab="discover";syncDiscoveryCta()');
+  assert.equal(f.ids.get("#discovery-next").hidden, true);
+  f.ids.get(".search-start").getBoundingClientRect = () => ({ bottom: -1 });
+  f.listeners.get("scroll")();
+  assert.equal(f.ids.get("#discovery-next").hidden, false);
+});
+test("有旅行的清单下一步直接打开顺序弹窗；暂存清单先补齐旅行配置", async () => {
+  const f = fixture();
+  f.run('trip={id:"t",title:"周末寻馆",revision:1,selections:["m"],stops:[],settings:{}};boot.venues=[{id:"m",name:"测试馆",kind:"museum"}];dialog=()=>{};renderPlan=()=>{}');
+  await f.run("proceedToPlanning()");
+  assert.equal(f.run("tab"), "route");
+  assert.equal(f.run("planDraft.stops.length"), 1);
+  const g = fixture();
+  g.run('draftSelection=[{id:"m",name:"测试馆"}];let requestedOptions=null;newTrip=(options)=>{requestedOptions=options}');
+  await g.run("proceedToPlanning()");
+  assert.equal(g.run("requestedOptions.continueToPlan"), true);
+});
+test("空路书引导先发现地点；大字按钮提供明确状态", () => {
+  const f = fixture();
+  f.run('trip={id:"empty",title:"周末寻馆",selections:[],stops:[],settings:{}};showTab("route")');
+  assert.equal(f.ids.get("#route-empty-next").hidden, false);
+  assert.match(f.ids.get(".intro-note").textContent, /先去发现博物馆/);
+  f.run("setLargeText(true)");
+  assert.equal(f.ids.get("#large-font")["aria-pressed"], "true");
+  assert.equal(f.ids.get("#large-font").textContent, "大字：开");
+  f.run("setLargeText(false)");
+  assert.equal(f.ids.get("#large-font")["aria-pressed"], "false");
 });
 test("无旅行可暂存且下一步启用；不赋予时长；收藏按类别与状态筛选", () => {
   const f = fixture();

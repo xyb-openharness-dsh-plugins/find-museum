@@ -8,7 +8,7 @@ export function roadbookText(s) {
   const rows = s.stops?.length ? s.stops : s.selections || [];
   return [
     "# " + s.title,
-    `目的地：${s.destination || "待定"} · ${s.stops?.length ? "已编排" : "待编排"} · 输入版本 ${s.revision}`,
+    `目的地：${s.destination || "待定"} · ${s.stops?.length ? "已编排" : "待编排"}`,
     `日期：${s.date || "待定"}；交通：${s.mode || "待定"}`,
     "",
     "> 开放、预约、维修和交通需出发前核实；规划时长不等于馆方承诺。",
@@ -18,10 +18,12 @@ export function roadbookText(s) {
       `- 类别：${placeKinds[v.kind || "museum"] || "地点"}`,
       `- 地址：${v.address || "待补"}`,
       `- 规划停留：${v.minutes ? v.minutes + "分钟" : "待编排"}`,
-      `- 特色：${v.intro || "待核实"}`,
-      `- 典型文物：${v.featuredExhibits || "待补；馆藏不等于在展"}`,
+      `- ${v.kind === "food" ? "体验备注" : v.kind === "citywalk" ? "路线提示" : "介绍"}：${v.intro || "待核实"}`,
+      ...(v.kind === "museum" || !v.kind
+        ? [`- 代表展品：${v.featuredExhibits || "待核实；馆藏不代表当前在展"}`]
+        : []),
       `- 交通：${v.transportIntro || "待核实"}`,
-      `- 常规开放：${v.openingHours || "未知"}；当天状态待核实`,
+      `- ${v.kind === "food" ? "营业信息" : "开放信息"}：${v.openingHours || "未知"}；当天状态待核实`,
       v.rating
         ? `- 高德评分：${v.rating.value}${v.rating.scale ? " / " + v.rating.scale : "（平台原始值；范围未提供）"}（${v.rating.checkedAt || "日期未提供"}）`
         : "- 评分：来源未提供",
@@ -73,8 +75,9 @@ export function roadbookHtml(s, { motifSvg = "" } = {}) {
   const rows = s.stops?.length ? s.stops : s.selections || [],
     days = [...new Set(rows.map((v) => v.day || 0))].sort((a, b) => a - b),
     report = s.preflight;
-  const detail = (v) =>
-    `<article class="visit"><div class="visit-title"><span>${e(placeKinds[v.kind || "museum"])}</span><h3>${e(v.name)}</h3><b>${v.minutes ? e(v.minutes / 60) + " 小时" : "待安排"}</b></div><p class="address">${e(v.address || "地址待补")}</p><div class="visit-body"><section><h4>为什么去</h4><p>${e(v.intro || "馆方介绍待补充，可交给Agent搜索核实。")}</p><h4>值得留意</h4><p>${e(v.featuredExhibits || "代表展品待核实；馆藏不代表当前在展。")}</p></section><section><h4>参访信息</h4><p>${e(v.openingHours || "开放时间待核实")}</p><p>预约与最后入馆：请核对馆方当天安排。</p><h4>怎么到达</h4><p>${e(v.transportIntro || "交通站点与步行路段待核实；请以实际入口为导航终点。")}</p></section></div>${v.visitCheck?.alerts?.map((t) => `<p class="notice">△ ${e(t)}</p>`).join("") || ""}<div class="sources">${[
+  const detail = (v) => {
+    const isMuseum = !v.kind || v.kind === "museum";
+    return `<article class="visit"><div class="visit-title"><span>${e(placeKinds[v.kind || "museum"])}</span><h3>${e(v.name)}</h3><b>${v.minutes ? e(v.minutes / 60) + " 小时" : "待安排"}</b></div><p class="address">${e(v.address || "地址待补")}</p><div class="visit-body"><section><h4>${isMuseum ? "馆方与展陈信息" : v.kind === "food" ? "饮食体验备注" : v.kind === "citywalk" ? "步行路线提示" : "地点介绍"}</h4><p>${e(v.intro || "介绍待核实")}</p>${isMuseum ? `<h4>值得留意</h4><p>${e(v.featuredExhibits || "代表展品待核实；馆藏不代表当前在展。")}</p>` : ""}</section><section><h4>${isMuseum ? "参访信息" : "开放与到达"}</h4><p>${e(v.openingHours || "开放信息待核实")}</p><p>${isMuseum ? "预约与最后入馆：请核对馆方当天安排。" : "营业、预约与临时状态请以提供方公告为准。"}</p><h4>怎么到达</h4><p>${e(v.transportIntro || "交通信息待核实；请以实际入口为导航终点。")}</p></section></div>${v.visitCheck?.alerts?.map((t) => `<p class="notice">△ ${e(t)}</p>`).join("") || ""}<div class="sources">${[
       ["位置来源", v.sourceUrl],
       ["馆方信息", v.officialUrl],
       ["介绍来源", v.introSource],
@@ -84,6 +87,7 @@ export function roadbookHtml(s, { motifSvg = "" } = {}) {
       .filter(([, url]) => Boolean(url))
       .map(([label, url]) => `<a href="${e(url)}" rel="noopener noreferrer">${label} ↗</a>`)
       .join(" · ")}</div></article>`;
+  };
   const weather = report
     ? report.weather
         .map(

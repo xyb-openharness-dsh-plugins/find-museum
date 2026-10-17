@@ -359,15 +359,21 @@ function mutate(update) {
   pendingWrites = run.catch(() => {});
   return run;
 }
-function newTrip() {
+function newTrip({ continueToPlan = false } = {}) {
   dialog(
     "新建一次寻馆旅行",
-    '<label>旅行名称<input name="title" required maxlength="160" value="' +
+    '<p class="micro">先完成工作区与目的地设置，保存后直接开始搜馆；日期可以暂时留空。</p><label>旅行名称<input name="title" required maxlength="160" value="' +
       esc($("#city").value || "城市") +
-      '寻馆"></label><label>出行日期<input name="date" type="date"></label><p class="micro">下一步由系统选择保存目录；取消不会创建旅行。创建成功后尝试打开原生会话，开场白由你确认发送。</p><button type="submit" class="primary">选择目录并创建</button>',
+      '寻馆"></label><label>目的地<input name="destination" required maxlength="80" value="' +
+      esc($("#city").value || "苏州") +
+      '"></label><label>出行日期（可选）<input name="date" type="date"></label><p class="workspace-choice"><strong>工作区资料目录</strong><span>' +
+      esc(boot.configured ? "创建时选择旅行资料保存位置；原目录资料会保留。" : "尚未配置，创建时选择本地资料目录。") +
+      '</span></p><p class="micro">保存后会直接进入高德搜馆；如果已有暂存地点，则直接进入排序和时长安排。取消目录选择不会创建旅行。</p><button type="submit" class="primary">设置工作区并继续 →</button>',
     async (f) => {
       const title = String(f.get("title")),
-        date = String(f.get("date") || "");
+        date = String(f.get("date") || ""),
+        destination = String(f.get("destination") || "").trim();
+      if (!destination) throw new Error("请填写目的地");
       $("#action-dialog").close();
       const folder = await chooseFolder("choose-folder");
       if (!folder) {
@@ -381,18 +387,20 @@ function newTrip() {
         });
         localStorage.setItem(rootKey, folder);
       }
+      $("#city").value = destination;
+      $("#query").value = "";
+      center = null;
+      centerName = destination;
       const r = await api("/trips", {
         method: "POST",
         body: JSON.stringify({
           title,
           folder,
           settings: {
-            destination: $("#city").value,
+            destination,
             date,
             mode: "尚未决定",
-            center: centerName.includes($("#city").value.replace(/市$/, ""))
-              ? center
-              : null,
+            center: null,
           },
         }),
       });
@@ -401,7 +409,6 @@ function newTrip() {
       localStorage.setItem(lastTripKey, trip.id);
       renderProjects();
       await commitDraftSelection();
-      showTab("route");
       if (isEmbedded)
         await bridge("trip-created", {
           tripId: trip.id,
@@ -410,9 +417,41 @@ function newTrip() {
             "请先了解这次旅行的兴趣与时间安排，再推荐大馆和周边特色县域馆。",
           ),
         });
-      toast("旅行已创建并保存");
+      if (continueToPlan || trip.selections?.length) {
+        setTimeout(() => {
+          showTab("route");
+          openPlanner();
+        }, 0);
+      } else {
+        setTimeout(async () => {
+          showTab("discover");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          let locationNote = "";
+          try {
+            await locateCity();
+          } catch (error) {
+            locationNote = error.message;
+          }
+          try {
+            await searchOnline("博物馆");
+            if (locationNote) toast("已进入高德搜馆；城市中心未能定位，可稍后手动定位");
+          } catch (error) {
+            toast("旅行已创建；高德搜馆暂不可用：" + error.message);
+          }
+        }, 0);
+      }
     },
   );
+  const titleInput = $("#action-form").querySelector('input[name="title"]'),
+    destinationInput = $("#action-form").querySelector('input[name="destination"]');
+  let titleEdited = false;
+  titleInput.addEventListener("input", () => {
+    titleEdited = true;
+  });
+  destinationInput.addEventListener("input", () => {
+    if (!titleEdited)
+      titleInput.value = destinationInput.value.trim() + "寻馆";
+  });
 }
 let draftSelection = [];
 try {
@@ -626,8 +665,10 @@ function renderMap(list) {
 }
 function showTab(t) {
   tab = t;
+  $(".workflow-help").open = false;
   document.body.dataset.page = t;
   $(".workflow-help-row").hidden = !["discover", "route"].includes(t);
+  $(".search-start").hidden = t !== "discover";
   $(".projectbar").hidden = ["results", "data"].includes(t);
   $("#mobile-page").value = t;
   $(".searchbar").hidden = t !== "discover";
@@ -668,6 +709,10 @@ function refresh() {
     ? `本次已选 ${selectedCount} 处${draftSelection.length ? " · 部分尚未保存到旅行" : ""}`
     : "先选几处感兴趣的馆";
   $("#discovery-design").disabled = !selectedCount;
+  $("#discovery-design").textContent = trip
+    ? "进入路书编辑 →"
+    : "设置工作区并进入路书 →";
+  syncDiscoveryCta();
   $("#map-summary").textContent = boot.settings.amapConfigured
     ? "已配置"
     : "未配置";
@@ -679,10 +724,44 @@ function refresh() {
   if (tab === "results") renderResults();
   $("#project-select").value = trip?.id || "";
 }
+function syncDiscoveryCta() {
+  const selectedCount = (trip?.selections?.length || 0) + draftSelection.length,
+    searchStepBottom = $(".search-start").getBoundingClientRect?.().bottom ?? 0;
+  $("#discovery-next").hidden =
+    tab !== "discover" || !selectedCount || searchStepBottom > 0;
+}
+window.addEventListener(
+  "scroll",
+  syncDiscoveryCta,
+  { passive: true },
+);
+async function proceedToPlanning() {
+  if (!trip) {
+    if (draftSelection.length) newTrip({ continueToPlan: true });
+    else showTab("route");
+    return;
+  }
+  if (draftSelection.length) await commitDraftSelection();
+  if (!trip.selections?.length) {
+    showTab("route");
+    return;
+  }
+  showTab("route");
+  openPlanner();
+}
 function renderRoute() {
+  const collected = collectedVenues();
+  const hasPlaces = collected.length > 0;
+  $("#route-empty-next").hidden = hasPlaces;
+  $("#route-page").dataset.routeEmpty = String(!hasPlaces);
+  $(".intro-note").textContent = hasPlaces
+    ? "先安排 Day N，再留出交通与休息的余地。"
+    : "先去发现博物馆，把想去的地点加入清单，再回来安排顺序和时长。";
+  const collectionPanel = $("#route-page").querySelector?.(".collection-panel");
+  if (collectionPanel) collectionPanel.open = false;
   const rr = selectedVenues();
   $("#selection-list").innerHTML =
-    collectedVenues()
+    collected
       .map(
         (v, i) =>
           `<article class="collection-row"><span>${i + 1}</span><div><b>${esc(v.name)}</b><small>${esc(v.address)}</small></div><button class="quiet" data-detail="${esc(v.id)}">详情</button><button class="quiet" data-uncollect="${esc(v.id)}" aria-label="移出清单${esc(v.name)}">移出</button></article>`,
@@ -739,6 +818,8 @@ function renderFavorites() {
 }
 
 function renderResults() {
+  const current = trip?.title ? `当前旅行：${trip.title}。下方版次保留各自保存时的名称。` : "尚未选择当前旅行；可在上方切换档案范围。";
+  $("#archive-current-trip").textContent = current;
   renderRoadbookList();
   $("#candidate-list").innerHTML = boot.candidates
     .filter((x) => x.status === "pending" && (!trip || x.trip_id === trip.id))
@@ -1041,6 +1122,8 @@ async function searchOnline(
       }
       if (!t) {
         stagePlaces(rows);
+        $("#action-dialog").close();
+        setTimeout(() => newTrip({ continueToPlan: true }), 0);
         return;
       }
       if (trip?.id !== tripId || trip.revision !== revision)
@@ -1052,8 +1135,11 @@ async function searchOnline(
       boot.venues = r.venues;
       boot.candidates = r.candidates;
       trip = r.trip;
-      refresh();
-      toast("已加入博物馆清单。可继续搜索，或到“设计路书”排序和安排Day N。");
+      setTimeout(() => {
+        showTab("route");
+        openPlanner();
+        toast("清单已加入，接下来安排参观顺序与时长。");
+      }, 0);
     },
   );
 }
@@ -1186,6 +1272,10 @@ document.addEventListener("change", (e) => {
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
+  if (b.matches(".workflow-help-close")) {
+    $(".workflow-help").open = false;
+    $(".workflow-help > summary").focus();
+  }
   if (b.dataset.selectMode) {
     searchSelection = b.dataset.selectMode;
     document
@@ -1301,14 +1391,11 @@ document.addEventListener(
     if (!b) return;
     const d = b.dataset;
     if (d.tab) showTab(d.tab);
+    if (d.go === "route") {
+      await proceedToPlanning();
+      return;
+    }
     if (d.go) {
-      if (d.go === "route" && draftSelection.length) {
-        if (!trip) {
-          newTrip();
-          return;
-        }
-        await commitDraftSelection();
-      }
       showTab(d.go);
     }
     if (d.filter) {
@@ -1422,7 +1509,10 @@ function renderRoadbookList() {
     .map(a => {
       const state=a.recordState || "active", rows=a.snapshot.stops.length ? a.snapshot.stops : a.snapshot.selections;
       const when=new Date(a.created_at), date=Number.isNaN(+when) ? "时间待补" : when.toLocaleString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
-      return `<article class="roadbook-row"><div class="roadbook-summary"><div class="roadbook-title"><h3>${esc(a.snapshot.title)}</h3><span class="version-note">第 ${a.version} 版</span>${state === "archived" ? '<span class="tag">已存档</span>' : state === "deleted" ? '<span class="tag">已删除</span>' : ""}</div><p>${esc(a.snapshot.destination || "目的地待定")} · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${rows.length} 处</p><time datetime="${esc(a.created_at)}">${esc(date)}</time></div><div class="roadbook-actions">${state === "deleted" ? `<button class="outline" data-archive-manage="${esc(a.id)}" data-action="restore">恢复路书</button>` : `<button class="outline" data-archive-open="${esc(a.id)}">浏览 →</button><details class="roadbook-more"><summary aria-label="${esc(a.snapshot.title)}第${a.version}版更多操作">更多 ···</summary><div class="roadbook-menu"><button class="quiet" data-archive-continue="${esc(a.id)}">修改路书</button><button class="quiet" data-archive-manage="${esc(a.id)}" data-action="${state === "archived" ? "restore" : "archive"}">${state === "archived" ? "移回最近" : "存档"}</button><button class="quiet danger" data-archive-manage="${esc(a.id)}" data-action="delete">删除</button></div></details>`}</div></article>`;
+      const savedNameNote = a.trip_id === trip?.id && trip?.title && a.snapshot.title !== trip.title
+        ? `<small class="archive-saved-name">本版保存时名称：${esc(a.snapshot.title)}</small>`
+        : "";
+      return `<article class="roadbook-row"><div class="roadbook-summary"><div class="roadbook-title"><h3>${esc(a.snapshot.title)}</h3><span class="version-note">第 ${a.version} 版</span>${state === "archived" ? '<span class="tag">已存档</span>' : state === "deleted" ? '<span class="tag">已删除</span>' : ""}</div>${savedNameNote}<p>${esc(a.snapshot.destination || "目的地待定")} · ${a.snapshot.stops.length ? "已编排" : "待编排"} · ${rows.length} 处</p><time datetime="${esc(a.created_at)}">${esc(date)}</time></div><div class="roadbook-actions">${state === "deleted" ? `<button class="outline" data-archive-manage="${esc(a.id)}" data-action="restore">恢复路书</button>` : `<button class="outline" data-archive-open="${esc(a.id)}">浏览 →</button><details class="roadbook-more"><summary aria-label="${esc(a.snapshot.title)}第${a.version}版更多操作">更多 ···</summary><div class="roadbook-menu"><button class="quiet" data-archive-continue="${esc(a.id)}">修改路书</button><button class="quiet" data-archive-manage="${esc(a.id)}" data-action="${state === "archived" ? "restore" : "archive"}">${state === "archived" ? "移回最近" : "存档"}</button><button class="quiet danger" data-archive-manage="${esc(a.id)}" data-action="delete">删除</button></div></details>`}</div></article>`;
     }).join("") || `<div class="empty archive-empty"><h3>${stateFilter ? "这里还没有路书" : "留下一份自己的行记"}</h3><p>${stateFilter ? "可以切换显示范围查看其他路书。" : "设计好清单或 Day N 后，保存第一版路书。"}</p><button class="outline" data-go="route">去设计路书 →</button></div>`;
 }
 async function manageRoadbook(id, action) {
@@ -1447,7 +1537,7 @@ function archiveById(id) {
 function openRoadbook(id) {
   const a = archiveById(id);
   $("#detail-content").innerHTML =
-    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div><div class="roadbook-preview">${esc(roadbookText({ ...a.snapshot, preflight: undefined }))}</div>${a.snapshot.preflight ? `<details class="archive-verification"><summary>天气与参访核实 · ${esc(a.snapshot.preflight.checkedAt)}</summary>${preflightMarkup(a.snapshot.preflight)}</details>` : ""}<div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-html-agent="${esc(id)}">和 Agent 定制 HTML</button><button class="outline" data-archive-continue="${esc(id)}">修改路书</button></div><details><summary>附件与 Agent 完善结果</summary>${
+    `<div class="dialog-head"><h2>${esc(a.snapshot.title)} · v${a.version}</h2><button class="quiet" data-close="detail">关闭 ×</button></div>${roadbookPreviewMarkup(a.snapshot)}${a.snapshot.preflight ? `<details class="archive-verification"><summary>天气与参访核实 · ${esc(a.snapshot.preflight.checkedAt)}</summary>${preflightMarkup(a.snapshot.preflight)}</details>` : ""}<div class="archive-actions"><button class="primary" data-archive-agent="${esc(id)}">发送到原生 Agent</button><button class="outline" data-archive-html-agent="${esc(id)}">和 Agent 定制 HTML</button><button class="outline" data-archive-continue="${esc(id)}">修改路书</button></div><details><summary>附件与 Agent 完善结果</summary>${
       (boot.artifacts || [])
         .filter(
           (x) => x.payload.roadbookId === id && x.kind !== "roadbook-snapshot",
@@ -1460,6 +1550,24 @@ function openRoadbook(id) {
     }</details><details open><summary>下载与分享给旅伴</summary><p class="micro">分享版仅含公开地点、Day N 和来源。下载后可自行发给旅伴，不生成本机分享链接。</p><div class="archive-actions">${["html", "md", "csv", "json"].map((f) => `<button class="outline" data-archive-download="${esc(id)}" data-format="${f}" data-share="true">下载 ${f.toUpperCase()}</button>`).join("")}<button class="quiet" data-archive-copy="${esc(id)}">复制行程摘要</button></div></details>`;
   prepareDialogLayout($("#detail"), $("#detail-content"));
   if (!$("#detail").open) $("#detail").showModal();
+}
+
+function roadbookPreviewMarkup(snapshot) {
+  const rows = snapshot.stops?.length ? snapshot.stops : snapshot.selections || [];
+  const days = [...new Set(rows.map((v) => v.day || 0))].sort((a, b) => a - b);
+  const source = (v) => [
+    ["地点来源", v.sourceUrl], ["介绍来源", v.introSource],
+    ["展品来源", v.exhibitSource], ["开放信息来源", v.openingHoursSource],
+    ["交通来源", v.transportSource],
+  ].filter(([, url]) => url).map(([label, url]) => `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`).join(" · ") || "来源链接尚未记录";
+  return `<div class="roadbook-preview structured-roadbook"><p class="roadbook-meta">${esc(snapshot.destination || "目的地待定")} · ${esc(snapshot.date || "日期待定")} · ${rows.length} 处</p><p class="roadbook-note">开放、预约、维修和交通以馆方当期信息为准；规划时长是个人安排，不代表馆方承诺。</p>${days.map((day) => `<section class="roadbook-day"><h3>${day ? `Day ${day}` : "尚未安排日期"}</h3>${rows.filter((v) => (v.day || 0) === day).map((v) => {
+    const kind = v.kind || "museum";
+    const details = kind === "museum"
+      ? `<p><b>值得留意</b>　${esc(v.featuredExhibits || "代表展品待核实；馆藏不代表当前在展。")}</p><details><summary>开放时间、交通与来源</summary><p><b>常规开放</b>　${esc(v.openingHours || "未知，出发前请核对馆方公告")}</p><p><b>交通</b>　${esc(v.transportIntro || "待核实")}</p>${source(v)}</details>`
+      : `<p><b>${kind === "food" ? "体验备注" : kind === "citywalk" ? "路线提示" : "地点介绍"}</b>　${esc(v.intro || "信息待补充，可继续核实")}</p><details><summary>${kind === "food" ? "营业信息、交通与来源" : "开放信息、交通与来源"}</summary><p><b>${kind === "food" ? "营业信息" : "开放信息"}</b>　${esc(v.openingHours || "未记录；请按提供方官方信息核实")}</p><p><b>交通</b>　${esc(v.transportIntro || "待核实")}</p>${source(v)}</details>`;
+    const alerts = v.visitCheck?.alerts || [];
+    return `<article class="roadbook-stop"><div class="roadbook-stop-head"><span>${esc(placeKinds[kind] || "地点")}</span><h4>${esc(v.name)}</h4><b>${v.minutes ? `${v.minutes / 60} 小时` : "待安排时长"}</b></div><p class="roadbook-address">${esc(v.address || "地址待补")}</p><p>${esc(v.intro || "介绍待核实")}</p>${details}${alerts.map((t) => `<p class="roadbook-alert">△ ${esc(t)}</p>`).join("")}</article>`;
+  }).join("")}</section>`).join("") || '<p class="empty">这份路书暂时没有地点。</p>'}</div>`;
 }
 async function archivePlan() {
   await pendingWrites;
@@ -1741,6 +1849,7 @@ $("#archive-scope").onchange = renderResults;
 $("#archive-city").oninput = renderRoadbookList;
 $("#archive-status").onchange = renderRoadbookList;
 $("#edit-route-plan").onclick = safe(() => openPlanner());
+$("#discovery-design").onclick = safe(proceedToPlanning);
 $("#new-trip").onclick = newTrip;
 $("#choose-root-settings").onclick = safe(configureRoot);
 $("#project-select").onchange = safe((e) => openTrip(e.target.value));
@@ -1782,10 +1891,28 @@ $("#fit-map").onclick = () => {
     );
   else map.setView([center.latitude, center.longitude], 10);
 };
+function setLargeText(enabled) {
+  document.body.classList.toggle("large", enabled);
+  const button = $("#large-font");
+  button.setAttribute("aria-pressed", String(enabled));
+  button.textContent = enabled ? "大字：开" : "大字：关";
+  button.title = enabled ? "当前为大字显示，点击切换标准字" : "当前为标准字，点击切换大字";
+}
 $("#large-font").onclick = () => {
-  document.body.classList.toggle("large");
+  setLargeText(!document.body.classList.contains("large"));
   map?.invalidateSize();
 };
+document.addEventListener("pointerdown", (e) => {
+  const help = $(".workflow-help");
+  if (help.open && !help.contains(e.target)) help.open = false;
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && $(".workflow-help").open) {
+    $(".workflow-help").open = false;
+    $(".workflow-help > summary").focus();
+  }
+});
+setLargeText(false);
 $("#open-session").onclick = safe(ensureSession);
 $("#agent-route").onclick = safe(() => sendPrompt());
 $("#calculate-driving").onclick = safe(driving);
