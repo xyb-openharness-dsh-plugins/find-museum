@@ -55,3 +55,7 @@ GitHub预发布：https://github.com/xyb-openharness-dsh-plugins/find-museum/rel
 新增旅行地点收藏/推荐、明确三步引导、折叠配置、冻结路书版本、附件预览/分享与清单切换按钮；MIT已确认。Node22/24均37项测试通过，实际包32文件、335455字节，SHA-256为5bbdbb951c8130ece5d58fd7c71a7de828fe36f55eb3435005346a496e102873。安装副本9个关键文件一致，15个原依赖全部可解析，内置Node实际入口32路由可加载。
 
 0.2仍使用预发布标识：浏览器受扩展界面阻挡，Desktop完整重启与真实界面/原生会话验收未完成。投稿指令已保存，但无最终真实截图，不提交市场收录PR。
+
+## 0.2.8预发布
+
+首页主路径改为“搜索加入地点后直接编排”；新建旅行一次填写工作区、目的地和可选日期。`main`提交`0dc9045`，GitHub预发布：[v0.2.8](https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.2.8)。附件`find-museum.tgz`及SHA-256校验文件已上传；包6,181,920 bytes，SHA-256为`d12e59c4ac42c21d20bf4d264b64c16464274e4167dc9cafdae16b2c01163336`。59项测试、构建、静态检查、数据门禁与解包运行通过。包已安装到web Profile且文件逐项匹配；Desktop未重启，实际界面加载待确认，故使用预发布标识。市场PR #57仍开放并选择GitHub源码安装；GitHub Release不会自动改变其安装源。

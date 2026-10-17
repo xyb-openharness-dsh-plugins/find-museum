@@ -25,4 +25,5 @@
 
 - DSH Desktop进程在安装前已运行，未强制重启。当前版本已安装到Profile，但本轮没有确认运行中的界面已重新加载，也没有重启后的Desktop界面证据。
 - 新建旅行→选工作区→高德搜索→加入清单→编排的整条原生Desktop链路待重开后实测；自动测试覆盖清单状态、入口条件和UI状态。
-- 未推送GitHub、未创建Release或市场投稿。
+- GitHub `main` 已推送到提交 `0dc9045`，并发布预发布标签 [v0.2.8](https://github.com/xyb-openharness-dsh-plugins/find-museum/releases/tag/v0.2.8)，附件为 `find-museum.tgz` 和 SHA-256 文件。
+- Awesome Workbench 投稿 PR [#57](https://github.com/dataelement/awesome-dsh-workbench/pull/57) 已存在且仍开放。本次没有重复投稿；该条目选择GitHub源码安装，未声明 `tarball`，因此市场探测使用默认分支源码，不会自动改用GitHub Release附件。
