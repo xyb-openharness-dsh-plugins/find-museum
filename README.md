@@ -4,7 +4,7 @@
 
 仓库：https://github.com/xyb-openharness-dsh-plugins/find-museum
 
-当前工作台包版本：**0.2.8**。
+当前工作台包版本：**0.2.9**。
 
 ## 界面预览
 

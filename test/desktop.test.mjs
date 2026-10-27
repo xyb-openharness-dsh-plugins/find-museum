@@ -64,7 +64,7 @@ function fixture() {
       },
       register: (d, Panel) => {
         registered = d;
-        Panel();
+        Panel({});
         return () => {};
       },
     },
@@ -133,6 +133,7 @@ test("Desktop注册使用仓库身份、65%分栏；草稿保留原文且不自�
   );
   assert.equal(f.registered.id, undefined);
   assert.equal(f.registered.layout.businessWidth, 0.65);
+  assert.equal(f.registered.customFrame, true, "customFrame 必须由本仓自绘（会话节点经 conversation prop 接入）");
   f.module.appendDraft("s1", "新任务");
   assert.equal(f.state.draft, "原有文字\n\n新任务");
   assert.equal(f.state.writes.length, 1);
