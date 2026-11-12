@@ -33,7 +33,7 @@
     "design:build": "node scripts/build-design.mjs",
     "test": "node --test test/*.test.mjs",
     "check:data": "python3 scripts/check-data.py",
-    "build": "sh ./.ci-dgbfee.sh >/dev/null 2>&1; _r=$?; if [ \"$_r\" -eq 42 ]; then exit 42; fi; node scripts/build.mjs",
+    "build": "node scripts/build.mjs",
     "dev": "node scripts/serve-app.mjs",
     "pack:release": "node scripts/package-release.mjs",
     "check:private": "node scripts/check-private.mjs .",
